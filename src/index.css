@@ -1,13 +1,85 @@
+/* Typography */
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Letter Spacing */
+.ls-2 { letter-spacing: 2px; }
+
+/* Product Card Hover Effect */
+.product-card-hover:hover .opacity-hover {
+  opacity: 1 !important;
+}
+
+.category-card img {
+  transition: transform 0.8s ease;
+}
+
+.category-card:hover img {
+  transform: scale(1.05);
+}
+
+.category-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%);
+  transition: 0.3s;
+}
+
+/* Buttons */
+.btn-dark {
+  background-color: #000;
+  border: none;
+  font-size: 14px;
+}
+
+.btn-outline-light {
+  border-width: 2px;
+}
+
+.navbar-brand {
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+/* Custom Global Styles */
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #1a1a1a;
+  background-color: #ffffff;
+}
+
+.ls-3 { letter-spacing: 3px; }
+.ls-2 { letter-spacing: 2px; }
+
+/* Category Interaction */
+.category-container img {
+  transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.category-container:hover img {
+  transform: scale(1.05);
+}
+
+.category-overlay {
+  transition: transform 0.4s ease;
+  transform: translateY(100%);
+}
+
+.category-container:hover .category-overlay {
+  transform: translateY(0);
+}
+
+/* Minimal Buttons */
+.btn-dark {
+  border-radius: 0;
+  padding: 12px 30px;
+  background-color: #000;
+  border: none;
+}
+
+.btn-light {
+  border-radius: 0;
+  padding: 12px 30px;
+  background-color: #fff;
+  border: 1px solid #000;
+  color: #000;
 }

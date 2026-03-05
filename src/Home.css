@@ -1,0 +1,121 @@
+/* Entire page container */
+.home-container {
+  font-family: "Poppins", sans-serif;
+}
+
+/* HERO SECTION */
+.hero-section {
+  height: 70vh;
+  background: linear-gradient(
+      rgba(0, 0, 0, 0.55),
+      rgba(0, 0, 0, 0.55)
+    ),
+    url("https://i.ibb.co/RztRv9q/hero-fashion.jpg") center/cover no-repeat;
+  border-radius: 15px;
+  margin: 20px;
+  color: rgb(80, 76, 76);
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  opacity: 0.9;
+}
+
+/* BUTTONS */
+.btn-home-primary {
+  background-color: #ff4d6d;
+  padding: 10px 25px;
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.btn-home-primary:hover {
+  background-color: #d63b59;
+}
+
+.btn-home-outline {
+  border: 2px solid white;
+  padding: 10px 25px;
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.btn-home-outline:hover {
+  background-color: white;
+  color: black;
+}
+
+/* SECTION TITLE */
+.section-title {
+  font-weight: 700;
+  font-size: 1.8rem;
+}
+
+/* CATEGORY CARDS */
+.category-card {
+  position: relative;
+  height: 250px;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.category-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.category-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: 0.3s;
+}
+
+.category-card:hover .category-overlay {
+  opacity: 1;
+}
+
+.btn-category {
+  background: #ff4d6d;
+  padding: 8px 20px;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.btn-category:hover {
+  background: #d63b59;
+}
+
+/* TRENDING */
+.trend-card {
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  text-align: center;
+}
+
+.trend-img-placeholder {
+  height: 150px;
+  background: #f2f2f2;
+  border-radius: 12px;
+}

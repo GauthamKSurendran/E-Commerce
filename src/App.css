@@ -1,38 +1,243 @@
-.App {
-  text-align: center;
+/* --- 1. Root & Typography --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap');
+
+:root {
+  --primary-accent: #ff3f6c; /* Myntra-style pink/red accent */
+  --text-main: #1a1a1a;
+  --text-muted: #6c757d;
+  --border-light: #f2f2f2;
+  --bg-light: #f9f9f9;
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-lg: 0 15px 30px rgba(0,0,0,0.1);
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  overflow-x: hidden; /* Prevent horizontal scroll from 100vw menu */
+  background-color: #ffffff;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* --- 2. Navigation & Header --- */
+.navbar {
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+  background-color: #ffffff !important;
+  z-index: 1050;
+  padding: 0; 
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.navbar-brand {
+  font-weight: 900 !important;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+}
+
+.nav-link {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-main) !important;
+  transition: all 0.2s ease;
+  border-bottom: 4px solid transparent;
+  padding: 30px 15px !important; /* Critical bridge for hover stability */
+  margin-bottom: -1px; 
+}
+
+/* --- 3. Mega Menu (Full Width) --- */
+.mega-menu-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  background-color: #ffffff;
+  z-index: 1000;
+  top: 100%; 
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  padding: 40px 0;
+  min-height: 350px;
+  animation: megaMenuFadeIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.nav-item:hover > .nav-link {
+  color: var(--primary-accent) !important; 
+  border-bottom: 4px solid var(--primary-accent);
+}
+
+.mega-menu-dropdown h6 {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--primary-accent);
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+}
+
+.menu-item-link {
+  color: var(--text-main);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: block;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.menu-item-link:hover {
+  color: var(--primary-accent) !important;
+  font-weight: 700;
+  transform: translateX(5px);
+}
+
+/* --- 4. Product Image Gallery (RS16) --- */
+.img-main-view {
+  height: 600px;
+  object-fit: cover;
+  background-color: var(--bg-light);
+  transition: transform 0.5s ease;
+}
+
+.thumbnail-strip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.thumbnail-strip:hover {
+  opacity: 0.8;
+}
+
+.thumbnail-active {
+  border-color: var(--primary-accent) !important;
+}
+
+/* --- 5. Buttons & Badges --- */
+.btn-dark {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 0;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.btn-dark:hover {
+  background-color: #222;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-badge {
+  background-color: var(--primary-accent);
   color: white;
+  font-weight: 900;
+  font-size: 0.6rem;
+  border: 2px solid white;
 }
 
-.App-link {
-  color: #61dafb;
+/* --- 6. Product Cards & Related Section --- */
+.product-card-hover {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border: 1px solid transparent;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.product-card-hover:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-8px);
+  border-color: var(--border-light);
+}
+
+.img-zoom {
+  transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.product-card-hover:hover .img-zoom {
+  transform: scale(1.1);
+}
+
+/* --- 7. Order History & Status (RS18) --- */
+.status-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 0;
+}
+
+/* --- 8. Helper Classes & Animations --- */
+.ls-1 { letter-spacing: 1px; }
+.ls-2 { letter-spacing: 2px; }
+.ls-3 { letter-spacing: 3px; }
+.fw-black { font-weight: 900 !important; }
+
+.page-wrapper {
+  padding-top: 100px; /* Space for the 85px navbar */
+  min-height: 100vh;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.text-decoration-none.border-bottom {
+  transition: all 0.3s ease;
+  border-bottom: 2px solid var(--text-main) !important;
+}
+
+.text-decoration-none.border-bottom:hover {
+  color: var(--primary-accent) !important;
+  border-color: var(--primary-accent) !important;
+  transform: translateY(-2px);
+}
+
+@keyframes megaMenuFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- 9. Responsive Adjustments --- */
+@media (max-width: 991px) {
+  .mega-menu-dropdown {
+    position: static;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    min-height: auto;
+    padding: 20px;
+    display: block;
   }
-  to {
-    transform: rotate(360deg);
+  .nav-link {
+    padding: 15px 0 !important;
+    border-bottom: none !important;
   }
+  .page-wrapper {
+    padding-top: 70px;
+  }
+  .img-main-view {
+    height: 400px;
+  }
+}
+.mega-menu-dropdown {
+  position: absolute;
+  width: 100vw;
+  left: 0;
+  background: white;
+  z-index: 1000;
+  top: 100%; /* Sits exactly below the py-4 header */
+}
+
+.menu-item-link:hover {
+  font-weight: bold;
+  color: #dc3545 !important; /* Bootstrap Danger color */
 }
