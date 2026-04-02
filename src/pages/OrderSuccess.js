@@ -1,17 +1,20 @@
 import React, { useContext } from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext'; // NEW: Import AuthContext
+import { AuthContext } from '../context/AuthContext';
 
 /**
  * Integrated Order Success Component
- * Displays confirmation details from the MongoDB Order record securely
+ * Features: 
+ * 1. Shortened Reference ID for clean UI
+ * 2. Amount Display (Synced from Checkout)
+ * 3. 3-day Delivery Estimation logic
+ * 4. Fixed Routing for "Track My Order"
  */
-const OrderSuccess = () => { // REMOVED: user prop
+const OrderSuccess = () => {
   const location = useLocation();
   const auth = useContext(AuthContext) || {};
   
-  // --- CRITICAL FIX: SAFE LOCAL STORAGE FALLBACK ---
-  // Guarantees we know who the user is even if the React Context is lagging during the fast redirect
+  // --- SAFE LOCAL STORAGE FALLBACK ---
   let localUser = {};
   try {
     const storedUser = localStorage.getItem("user");
@@ -24,20 +27,31 @@ const OrderSuccess = () => { // REMOVED: user prop
 
   const user = auth?.user || localUser;
 
-  // Retrieve the order ID passed from Checkout/PaymentGateway via state
-  const { orderId } = location.state || {};
+  // Retrieve order details passed from the payment/checkout state
+  const { orderId, amount } = location.state || {};
 
-  // 1. SECURITY & FALLBACK: Redirect if no session or order context exists
-  // This prevents users from manually navigating to /order-success without a purchase
-  if (!user || (!user.name && !user.email) || !orderId) {
+  // --- HELPER: CALCULATE 3 DAYS FROM TODAY ---
+  const getDeliveryDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 3);
+    return date.toLocaleDateString('en-IN', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  // 1. SECURITY REDIRECT: Prevent manual navigation to this page if no orderId exists
+  if (!orderId) {
     return <Navigate to="/" replace />;
   }
 
   return (
-    <div className="container py-5 mt-5">
+    <div className="container py-5 mt-5 animate-in">
       <div className="row justify-content-center">
-        <div className="col-md-6 text-center">
-          <div className="card shadow-lg border-0 rounded-0 p-5 bg-white shadow-hover">
+        <div className="col-md-5 text-center">
+          <div className="card shadow-lg border-0 rounded-4 p-5 bg-white">
             
             {/* SUCCESS ICON */}
             <div className="mb-4 text-success animate-bounce">
@@ -46,36 +60,63 @@ const OrderSuccess = () => { // REMOVED: user prop
               </svg>
             </div>
 
-            <h2 className="fw-black text-uppercase ls-2 mb-2">Order Confirmed!</h2>
+            <h2 className="fw-black text-uppercase ls-1 mb-2">Order Confirmed!</h2>
             <p className="text-muted mb-4 small">
-              Thank you, <span className="fw-bold text-dark">{user.name || "Customer"}</span>. 
-              We've received your order and our team is already getting it ready for shipment.
+              Thank you, <span className="fw-bold text-dark text-capitalize">{user.name || "Customer"}</span>. 
+              We've received your order and our team is already getting it ready.
             </p>
 
             {/* TRANSACTION DETAILS */}
-            <div className="bg-light p-4 mb-4 border border-dashed rounded-0">
-              <p className="extra-small text-muted mb-1 text-uppercase fw-bold ls-1">Order Reference</p>
-              {/* Displaying the MongoDB _id in uppercase for a professional look */}
-              <h4 className="fw-black text-primary m-0 font-monospace">
-                #{orderId.toString().toUpperCase()}
-              </h4>
-              <p className="extra-small text-muted mt-2 mb-0">
-                A confirmation receipt has been sent to your email.
-              </p>
+            <div className="bg-light p-4 mb-3 border rounded-3 text-start">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="extra-small text-muted fw-bold text-uppercase ls-1">Reference</span>
+                {/* 
+                  FIX: Shortened the ID display. 
+                  Using substring to show last 10 characters so it fits your UI perfectly.
+                */}
+                <span className="font-monospace fw-bold text-primary">
+                  #{orderId.toString().substring(orderId.length - 10).toUpperCase()}
+                </span>
+              </div>
+              
+              {amount && (
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="extra-small text-muted fw-bold text-uppercase ls-1">Total Paid</span>
+                  <span className="fw-black text-dark">₹{Number(amount).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+            {/* DELIVERY ESTIMATION BOX */}
+            <div className="bg-dark text-white p-4 mb-4 rounded-3 shadow-sm d-flex flex-column align-items-center">
+              <i className="bi bi-truck fs-3 mb-2"></i>
+              <p className="extra-small text-uppercase fw-bold ls-2 mb-1 opacity-75">Estimated Delivery By</p>
+              <h5 className="fw-black text-uppercase m-0 ls-1">
+                {getDeliveryDate()}
+              </h5>
+              <div className="mt-2 pt-2 border-top border-secondary w-100 border-opacity-25">
+                <p className="extra-small mb-0 opacity-50 text-uppercase fw-bold">
+                  Standard Express Shipping (3 Days)
+                </p>
+              </div>
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="d-grid gap-3">
+            <div className="d-grid gap-2">
+              {/* 
+                FIX: Route updated to /order-history to match the path defined in App.js.
+                This fixes the 404 error on click.
+              */}
               <Link 
-                to="/profile" // Adjust this to match your actual Order History route (e.g., /profile or /orders)
-                className="btn btn-dark py-3 rounded-0 fw-black ls-1 transition-all"
+                to="/order-history" 
+                className="btn btn-dark py-3 rounded-3 fw-black ls-1 shadow-sm transition-all"
               >
                 TRACK MY ORDER
               </Link>
               
               <Link 
                 to="/products" 
-                className="btn btn-outline-dark py-3 rounded-0 fw-bold ls-1"
+                className="btn btn-outline-dark py-3 rounded-3 fw-bold ls-1"
               >
                 CONTINUE SHOPPING
               </Link>

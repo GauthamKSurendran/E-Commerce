@@ -1,16 +1,16 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { AuthContext } from "./AuthContext";
 
 export const CartContext = createContext();
 
 /**
  * Integrated CartProvider for FASHION.CO
- * Features: MongoDB Sync, Optimistic UI Updates, and Cross-Device Persistence
+ * Features: DB Syncing, Category Persistence for Analytics, and Optimistic UI updates.
  */
 export default function CartProvider({ children }) {
   const { user } = useContext(AuthContext);
 
-  // Initialize from localStorage as a fallback for fast initial loads
+  // Initialize from localStorage for instant UI feedback
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem("fashion_cart");
     return savedCart ? JSON.parse(savedCart) : [];
@@ -27,25 +27,26 @@ export default function CartProvider({ children }) {
       
       if (response.ok) {
         const data = await response.json();
-        // Map backend schema to match your existing frontend UI logic
-        if (data.items) {
+        if (data && data.items) {
           const mappedCart = data.items.map(item => ({
             _id: item.productId,
             name: item.name,
             price: item.price,
             image: item.image,
+            category: item.category || "Other", // Sync category for Revenue Analytics
             selectedSize: item.size,
-            qty: item.quantity // Translates DB 'quantity' to local 'qty'
+            qty: item.quantity, 
+            maxStock: item.maxStock || 99 
           }));
           setCart(mappedCart);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch DB cart", error);
+      console.error("Critical: Failed to fetch DB cart", error);
     }
   }, [user]);
 
-  // Sync cart from DB when user logs in, or clear it on logout
+  // Sync on Auth Change
   useEffect(() => {
     if (user) {
       fetchDbCart();
@@ -55,25 +56,40 @@ export default function CartProvider({ children }) {
     }
   }, [user, fetchDbCart]);
 
-  // Keep LocalStorage synced for immediate UI loads on refresh
+  // Sync state to localStorage for guest persistence/persistence across refreshes
   useEffect(() => {
     localStorage.setItem("fashion_cart", JSON.stringify(cart));
   }, [cart]);
 
-  // 2. ADD TO CART API SYNC
-  const addToCart = async (product) => {
-    // Optimistic UI Update: Instant feedback for the user
+  // 2. ADD TO CART WITH CATEGORY PERSISTENCE
+  const addToCart = async (product, qtyToAdd = 1, availableStock = 99) => {
+    const existingItem = cart.find(x => x._id === product._id && x.selectedSize === product.selectedSize);
+    const currentQtyInCart = existingItem ? existingItem.qty : 0;
+
+    if (currentQtyInCart + qtyToAdd > availableStock) {
+      alert(`Stock Limit: Only ${availableStock} units of size ${product.selectedSize} available.`);
+      return; 
+    }
+
+    // Update Local State Optimistically
     setCart((prev) => {
       const exists = prev.find((x) => x._id === product._id && x.selectedSize === product.selectedSize);
       if (exists) {
         return prev.map((x) =>
-          x._id === product._id && x.selectedSize === product.selectedSize ? { ...x, qty: x.qty + 1 } : x
+          x._id === product._id && x.selectedSize === product.selectedSize 
+            ? { ...x, qty: x.qty + qtyToAdd } 
+            : x
         );
       }
-      return [...prev, { ...product, qty: 1 }];
+      return [...prev, { 
+        ...product, 
+        qty: qtyToAdd, 
+        maxStock: availableStock,
+        category: product.category || "Other" 
+      }];
     });
 
-    // Background Backend Sync
+    // Backend Sync
     if (user) {
       try {
         const token = localStorage.getItem("token");
@@ -87,53 +103,54 @@ export default function CartProvider({ children }) {
             productId: product._id,
             name: product.name,
             price: product.price,
-            image: product.image || (product.images && product.images[0]), // Safe fallback
+            category: product.category || "Other", 
+            image: product.image || (product.images && product.images[0]), 
             size: product.selectedSize,
-            quantity: 1 // Backend route automatically adds to existing quantity
+            quantity: qtyToAdd,
+            maxStock: availableStock 
           }),
         });
       } catch (err) {
-        console.error("DB Add to Cart Error", err);
+        console.error("DB Sync Failed (Add)", err);
       }
     }
   };
 
-  // 3. REMOVE FROM CART API SYNC
+  // 3. REMOVE FROM CART
   const removeFromCart = async (id, size) => {
-    // Optimistic UI Update
     setCart((prev) => prev.filter((x) => !(x._id === id && x.selectedSize === size)));
 
-    // Background Backend Sync
     if (user) {
       try {
         const token = localStorage.getItem("token");
-        // FIX APPLIED: Added size to the URL parameters to prevent deleting all sizes of a product
         await fetch(`http://localhost:5000/api/cart/item/${id}/${size}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) {
-        console.error("DB Remove from Cart Error", err);
+        console.error("DB Sync Failed (Remove)", err);
       }
     }
   };
 
-  // 4. UPDATE QUANTITY API SYNC
-  const updateQty = async (id, size, newQty) => {
+  // 4. UPDATE QUANTITY
+  const updateQty = async (id, size, newQty, maxStock) => {
     if (newQty < 1) return;
+    
+    if (maxStock !== undefined && newQty > maxStock) {
+        alert(`Maximum stock reached (${maxStock} units).`);
+        return;
+    }
 
-    // Optimistic UI Update
     setCart((prev) =>
       prev.map((x) =>
         x._id === id && x.selectedSize === size ? { ...x, qty: newQty } : x
       )
     );
 
-    // Background Backend Sync
     if (user) {
       try {
         const token = localStorage.getItem("token");
-        // FIX APPLIED: Using the new PUT route and passing the exact absolute quantity
         await fetch("http://localhost:5000/api/cart/update", {
           method: "PUT",
           headers: {
@@ -147,12 +164,12 @@ export default function CartProvider({ children }) {
           }),
         });
       } catch (err) {
-        console.error("DB Update Qty Error", err);
+        console.error("DB Sync Failed (Update)", err);
       }
     }
   };
 
-  // 5. CLEAR CART API SYNC
+  // 5. CLEAR CART (After Checkout or Manual Clear)
   const clearCart = async () => {
     setCart([]);
     localStorage.removeItem("fashion_cart");
@@ -165,12 +182,15 @@ export default function CartProvider({ children }) {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) {
-        console.error("DB Clear Cart Error", err);
+        console.error("DB Sync Failed (Clear)", err);
       }
     }
   };
 
-  const totalPrice = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+  // MEMOIZED CALCULATION: Prevents unnecessary re-renders when other state changes
+  const totalPrice = useMemo(() => {
+    return cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+  }, [cart]);
 
   return (
     <CartContext.Provider

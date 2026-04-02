@@ -25,8 +25,8 @@ function AdminUsers() {
     const token = localStorage.getItem("token");
     try {
       // Hits the /api/admin/users route we added to server.js
-      const res = await fetch("http://localhost:5000/api/admin/users", {
-        headers: {
+          const res = await fetch("https://e-commerce-backend-9-t3c1.onrender.com/api/admin/users", {
+          headers: {
           "Authorization": `Bearer ${token}`
         }
       });
@@ -64,8 +64,7 @@ function AdminUsers() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
-        method: "DELETE",
+        const res = await fetch(`https://e-commerce-backend-9-t3c1.onrender.com/api/admin/users/${id}`, {        method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {

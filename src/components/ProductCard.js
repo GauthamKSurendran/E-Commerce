@@ -5,7 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 /**
  * Optimized ProductCard Component
- * Prevents "Quick Add" without size selection for apparel
+ * Integrated with Size-Specific Stock Schema
+ * Hides customer shopping features (Wishlist, Add to Bag) for Admins
  */
 function ProductCard({ product, user }) {
   const { addToCart } = useContext(CartContext);
@@ -14,7 +15,13 @@ function ProductCard({ product, user }) {
 
   // BACKEND INTEGRATION: Use MongoDB unique identifiers
   const productId = product._id; 
-  const isInStock = product.stock > 0;
+  
+  // Calculate total stock dynamically based on size arrays
+  const totalStock = product.sizes && typeof product.sizes[0] === 'object'
+    ? product.sizes.reduce((acc, curr) => acc + (curr.countInStock || 0), 0)
+    : product.stock || 0; // Fallback for legacy data
+
+  const isInStock = totalStock > 0;
   const inWishlist = isInWishlist(productId);
 
   const handleQuickAdd = (e) => {
@@ -35,17 +42,27 @@ function ProductCard({ product, user }) {
       alert("Please select your preferred size on the product page.");
       navigate(`/product/${productId}`);
     } else {
-      // If it's a single-size item or accessory, add directly
-      const defaultSize = product.sizes?.[0] || "N/A";
+      // If it's a single-size item or accessory, check if that specific size is in stock
+      const singleSizeObj = typeof product.sizes[0] === 'object' ? product.sizes[0] : null;
       
+      const defaultSize = singleSizeObj ? singleSizeObj.size : (product.sizes?.[0] || "N/A");
+      const defaultStock = singleSizeObj ? singleSizeObj.countInStock : (product.stock || 99);
+
+      if (defaultStock === 0) {
+        alert("This item is currently out of stock.");
+        return;
+      }
+
+      // Add directly
       addToCart({
+        ...product, // Spread the whole product for context
         productId: product._id,
         name: product.name,
         price: product.price,
         image: product.image,
         category: product.category,
-        size: defaultSize // Set the confirmed size
-      });
+        selectedSize: defaultSize 
+      }, 1, defaultStock);
       
       alert(`${product.name} added to your bag.`);
     }
@@ -66,36 +83,43 @@ function ProductCard({ product, user }) {
       <div className="position-relative overflow-hidden" style={{ height: "380px" }}>
         <Link to={`/product/${productId}`}>
           <img 
-            src={product.image || "https://via.placeholder.com/300x380"} 
+            // Fallback gracefully for multi-image vs single-image schemas
+            src={product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://via.placeholder.com/300x380")} 
             className="card-img-top rounded-0 transition-all" 
             style={{ height: "100%", width: "100%", objectFit: "cover" }} 
             alt={product.name} 
           />
         </Link>
         
-        {/* Stock Status Badge */}
-        <span className={`position-absolute top-0 end-0 badge rounded-0 m-2 extra-small fw-bold ${isInStock ? 'bg-success' : 'bg-danger'}`}>
-          {isInStock ? 'IN STOCK' : 'OUT OF STOCK'}
-        </span>
+        {/* CUSTOMER FEATURE: Stock Badge (Hidden for Admins) */}
+        {!user?.isAdmin && (
+          <span className={`position-absolute top-0 end-0 badge rounded-0 m-2 px-2 py-1 extra-small fw-bold ${isInStock ? 'bg-white text-dark border border-dark' : 'bg-danger text-white'}`}>
+            {isInStock ? `${totalStock} IN STOCK` : 'SOLD OUT'}
+          </span>
+        )}
 
-        {/* Wishlist Toggle */}
-        <button 
-          className="btn btn-light rounded-pill position-absolute top-0 start-0 m-2 shadow-sm border-0 d-flex align-items-center justify-content-center" 
-          style={{ width: "35px", height: "35px" }}
-          onClick={toggleWishlist}
-        >
-          {inWishlist ? '❤️' : '🤍'}
-        </button>
+        {/* CUSTOMER FEATURE: Wishlist Toggle (Hidden for Admins) */}
+        {!user?.isAdmin && (
+          <button 
+            className="btn btn-light rounded-pill position-absolute top-0 start-0 m-2 shadow-sm border-0 d-flex align-items-center justify-content-center" 
+            style={{ width: "35px", height: "35px" }}
+            onClick={toggleWishlist}
+          >
+            {inWishlist ? '❤️' : '🤍'}
+          </button>
+        )}
 
-        {/* Quick Add Overlay - Logic Fixed */}
-        <button 
-          className="btn btn-dark w-100 rounded-0 position-absolute bottom-0 start-0 py-3 fw-black ls-1 animate-slide-up"
-          id="quick-add-btn"
-          onClick={handleQuickAdd}
-          disabled={!isInStock}
-        >
-          {isInStock ? 'QUICK ADD +' : 'SOLD OUT'}
-        </button>
+        {/* CUSTOMER FEATURE: Quick Add Overlay (Hidden for Admins) */}
+        {!user?.isAdmin && (
+          <button 
+            className="btn btn-dark w-100 rounded-0 position-absolute bottom-0 start-0 py-3 fw-black ls-1 animate-slide-up"
+            id="quick-add-btn"
+            onClick={handleQuickAdd}
+            disabled={!isInStock}
+          >
+            {isInStock ? 'QUICK ADD +' : 'SOLD OUT'}
+          </button>
+        )}
       </div>
 
       <div className="card-body px-0 pt-3 bg-transparent">

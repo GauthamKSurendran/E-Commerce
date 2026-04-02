@@ -2,6 +2,9 @@ import React, { useContext, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ProductContext } from "../context/ProductProvider";
 import ProductCard from "../components/ProductCard";
+import kidsImage from '../components/Assets/kidss.jpg';
+import womenImage from '../components/Assets/women.jpg';
+import menImage from '../components/Assets/men.jpg';
 
 /**
  * Integrated Home Component
@@ -25,7 +28,7 @@ export default function Home({ user }) {
     <div className="page-wrapper">
       
       {/* 1. HERO SECTION */}
-      <section className="position-relative overflow-hidden mb-5" style={{ height: '85vh' }}>
+      <section className="position-relative overflow-hidden mb-5" style={{ height: '90vh',marginTop: '-150px' }}>
         <img 
           src="/Homebg.png" 
           className="position-absolute w-100 h-100" 
@@ -35,7 +38,7 @@ export default function Home({ user }) {
         />
         <div className="position-absolute top-50 start-0 translate-middle-y ps-5 text-white bg-dark bg-opacity-25 p-4 w-100">
           <div className="container">
-            <h1 className="display-1 fw-black mb-0">THE WINTER</h1>
+            <h1 className="display-1 fw-black mb-0">THE SUMMER</h1>
             <h1 className="display-1 fw-light mb-4">EDIT. 2026</h1>
             <p className="lead mb-4">Premium apparel for Men, Women & Kids.</p>
             <div className="d-flex gap-3">
@@ -54,7 +57,7 @@ export default function Home({ user }) {
           <div className="col-md-4">
             <Link to="/products?category=Men" className="text-decoration-none">
               <div className="card border-0 rounded-0 shadow-sm overflow-hidden category-card">
-                <img src="https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg" className="w-100" style={{height: '500px', objectFit: 'cover'}} alt="Men" />
+                <img src={menImage} className="w-100" style={{height: '500px', objectFit: 'cover'}} alt="Men" />
                 <div className="card-body p-4 bg-white">
                   <h4 className="fw-bold mb-1 text-dark">MEN</h4>
                   <p className="text-muted small">Outerwear & Tailoring</p>
@@ -66,7 +69,7 @@ export default function Home({ user }) {
           <div className="col-md-4">
             <Link to="/products?category=Women" className="text-decoration-none">
               <div className="card border-0 rounded-0 shadow-sm overflow-hidden category-card">
-                <img src="https://images.pexels.com/photos/1126993/pexels-photo-1126993.jpeg" className="w-100" style={{height: '500px', objectFit: 'cover'}} alt="Women" />
+                <img src={womenImage} className="w-100" style={{height: '500px', objectFit: 'cover'}} alt="Women" />
                 <div className="card-body p-4 bg-white">
                   <h4 className="fw-bold mb-1 text-dark">WOMEN</h4>
                   <p className="text-muted small">Dresses & Accessories</p>
@@ -76,16 +79,22 @@ export default function Home({ user }) {
           </div>
 
           <div className="col-md-4">
-            <Link to="/products?category=Kids" className="text-decoration-none">
-              <div className="card border-0 rounded-0 shadow-sm overflow-hidden category-card">
-                <img src="https://images.pexels.com/photos/1619697/pexels-photo-1619697.jpeg" className="w-100" style={{height: '500px', objectFit: 'cover'}} alt="Kids" />
-                <div className="card-body p-4 bg-white">
+             <Link to="/products?category=Kids" className="text-decoration-none">
+                <div className="card border-0 rounded-0 shadow-sm overflow-hidden category-card">
+                  {/* 2. Update the src to use the imported variable */}
+                    <img 
+                    src={kidsImage} 
+                    className="w-100" 
+                    style={{ height: '500px', objectFit: 'cover' }} 
+                    alt="Kids Collection" 
+                    />
+                    <div className="card-body p-4 bg-white">
                   <h4 className="fw-bold mb-1 text-dark">KIDS</h4>
-                  <p className="text-muted small">Organic Play-sets</p>
-                </div>
+                <p className="text-muted small">Organic Play-sets</p>
               </div>
-            </Link>
-          </div>
+            </div>
+          </Link>
+         </div>
         </div>
       </div>
 

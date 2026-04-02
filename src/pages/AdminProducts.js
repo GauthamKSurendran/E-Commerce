@@ -7,21 +7,30 @@ function AdminProducts() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const availableSizes = ["S", "M", "L", "XL", "XXL"];
+  // 1. STATE MANAGEMENT (Updated for Size-Specific Stock)
+  const defaultSizes = [
+    { size: "S", countInStock: 0 },
+    { size: "M", countInStock: 0 },
+    { size: "L", countInStock: 0 },
+    { size: "XL", countInStock: 0 },
+    { size: "XXL", countInStock: 0 },
+  ];
 
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     category: "Men",
     subCategory: "None",
-    stock: "",
-    image: "",
-    imagePreview: "",
     description: "",
-    sizes: [],
+    sizes: JSON.parse(JSON.stringify(defaultSizes)),
   });
 
-  // 1. Initial Load of Products
+  // NEW: State to manage multiple photos
+  const [existingImages, setExistingImages] = useState([]); // URLs to keep from DB
+  const [images, setImages] = useState([]); // Base64 strings for UI previews
+  const [newFiles, setNewFiles] = useState([]); // Actual File objects for backend upload
+
+  // 2. Fetch Products
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -37,6 +46,7 @@ function AdminProducts() {
     }
   };
 
+  // 3. Handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "category" && value !== "Kids") {
@@ -46,31 +56,56 @@ function AdminProducts() {
     }
   };
 
+  // NEW: Multiple Image Handler
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Base64 limit check (2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Image is too large. Please use a file under 2MB.");
+    const files = Array.from(e.target.files);
+
+    if (existingImages.length + newFiles.length + files.length > 5) {
+        alert("Maximum of 5 photos allowed per product.");
         return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          image: reader.result,
-          imagePreview: reader.result,
-        }));
-      };
-      reader.readAsDataURL(file);
     }
+
+    const previewsArray = [];
+    const filesToStore = [];
+
+    files.forEach(file => {
+        if (!file.type.startsWith('image/')) {
+            alert(`File ${file.name} is not an image.`);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            previewsArray.push(reader.result);
+            filesToStore.push(file);
+
+            if (previewsArray.length === files.length) {
+                setImages(prev => [...prev, ...previewsArray]);
+                setNewFiles(prev => [...prev, ...filesToStore]);
+            }
+        };
+        reader.readAsDataURL(file);
+    });
   };
 
-  const toggleSize = (size) => {
-    const newSizes = formData.sizes.includes(size)
-      ? formData.sizes.filter((s) => s !== size)
-      : [...formData.sizes, size];
-    setFormData((prev) => ({ ...prev, sizes: newSizes }));
+  // NEW: Remove Image Handler
+  const handleRemoveImage = (indexToRemove) => {
+    const isExisting = indexToRemove < existingImages.length;
+
+    if (isExisting) {
+        setExistingImages(prev => prev.filter((_, index) => index !== indexToRemove));
+    } else {
+        const newFilesIndex = indexToRemove - existingImages.length;
+        setNewFiles(prev => prev.filter((_, index) => index !== newFilesIndex));
+    }
+
+    setImages(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleSizeStockChange = (index, value) => {
+    const updatedSizes = [...formData.sizes];
+    updatedSizes[index].countInStock = Number(value);
+    setFormData((prev) => ({ ...prev, sizes: updatedSizes }));
   };
 
   const handleCancel = () => {
@@ -81,19 +116,25 @@ function AdminProducts() {
       price: "",
       category: "Men",
       subCategory: "None",
-      stock: "",
-      image: "",
-      imagePreview: "",
       description: "",
-      sizes: [],
+      sizes: JSON.parse(JSON.stringify(defaultSizes)),
     });
+    setExistingImages([]);
+    setImages([]);
+    setNewFiles([]);
   };
 
+  // 4. Submit Integration with FormData
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (existingImages.length === 0 && newFiles.length === 0) {
+      alert("Please upload at least one image for the product.");
+      return;
+    }
+
     setLoading(true);
 
-    // 2. TOKEN SECURITY - Retrieve from storage
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Session expired or token missing. Please logout and login again.");
@@ -101,29 +142,39 @@ function AdminProducts() {
       return;
     }
 
-    const productPayload = {
-      name: formData.name,
-      price: Number(formData.price), // Force Number
-      category: formData.category,
-      subCategory: formData.category === 'Kids' ? formData.subCategory : 'None',
-      stock: Number(formData.stock), // Force Number
-      image: formData.image,
-      sizes: formData.sizes,
-      description: formData.description || ""
-    };
-
-    const url = editingId
-      ? `http://localhost:5000/api/products/${editingId}`
-      : "http://localhost:5000/api/products";
-
     try {
+      // Create FormData to handle mixed text/file payloads
+      const payload = new FormData();
+      
+      payload.append('name', formData.name);
+      payload.append('price', Number(formData.price));
+      payload.append('category', formData.category);
+      payload.append('subCategory', formData.category === 'Kids' ? formData.subCategory : 'None');
+      payload.append('description', formData.description || "");
+      payload.append('sizes', JSON.stringify(formData.sizes));
+
+      // Append existing images we want to keep
+      if (editingId && existingImages.length > 0) {
+        existingImages.forEach(imageUrl => payload.append('existingImages', imageUrl));
+      }
+
+      // Append actual binary files for new images
+      if (newFiles.length > 0) {
+        newFiles.forEach(file => payload.append('images', file));
+      }
+
+      const url = editingId
+        ? `http://localhost:5000/api/products/${editingId}`
+        : "http://localhost:5000/api/products";
+
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
         headers: {
-          "Content-Type": "application/json",
+          // CRITICAL: We DO NOT set 'Content-Type: application/json' here. 
+          // The browser automatically sets it to 'multipart/form-data' when using FormData.
           "Authorization": `Bearer ${token.trim()}`, 
         },
-        body: JSON.stringify(productPayload),
+        body: payload,
       });
 
       const data = await res.json();
@@ -133,7 +184,6 @@ function AdminProducts() {
         await fetchProducts();
         handleCancel();
       } else {
-        // Detailed error from backend middleware
         alert(`Server Error: ${data.message || "Failed to process request"}`);
       }
     } catch (err) {
@@ -157,7 +207,6 @@ function AdminProducts() {
       const res = await fetch(`http://localhost:5000/api/products/${id}`, {
         method: "DELETE",
         headers: { 
-          // CRITICAL FIX: Added the mandatory space after Bearer
           "Authorization": `Bearer ${token.trim()}` 
         },
       });
@@ -232,8 +281,7 @@ function AdminProducts() {
                       </select>
                     </div>
                 ) : (
-                    <div className="col-md-3">
-                    </div>
+                    <div className="col-md-3"></div>
                 )}
 
                 <div className="col-md-3">
@@ -247,52 +295,64 @@ function AdminProducts() {
                     required
                   />
                 </div>
-                <div className="col-md-3">
-                  <label className="small fw-bold text-muted mb-1 text-uppercase">Stock</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    className="form-control rounded-0 border-dark border-opacity-25"
-                    value={formData.stock}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="small fw-bold text-muted mb-1 text-uppercase">Photo</label>
+                
+                {/* MULTIPLE PHOTO UPLOAD */}
+                <div className="col-md-9">
+                  <label className="small fw-bold text-muted mb-1 text-uppercase">Photos (Maximum 5)</label>
                   <input
                     type="file"
                     accept="image/*"
-                    className="form-control rounded-0 border-dark border-opacity-25"
+                    multiple="multiple"
+                    className="form-control rounded-0 border-dark border-opacity-25 bg-white"
                     onChange={handleImageChange}
                   />
-                  {formData.imagePreview && (
-                    <img
-                      src={formData.imagePreview}
-                      alt="Preview"
-                      className="mt-2 border p-1"
-                      style={{ height: "80px", width: "60px", objectFit: "cover" }}
-                    />
-                  )}
                 </div>
-                <div className="col-12">
-                  <label className="small fw-bold d-block mb-2 text-muted">AVAILABLE SIZES</label>
-                  <div className="d-flex gap-2">
-                    {availableSizes.map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        className={`btn btn-sm rounded-0 border fw-bold ${
-                          formData.sizes.includes(size) ? "btn-dark" : "btn-outline-dark"
-                        }`}
-                        style={{ width: "45px", height: "45px" }}
-                        onClick={() => toggleSize(size)}
-                      >
-                        {size}
-                      </button>
+
+                {/* LIVE PHOTO PREVIEWS */}
+                {images.length > 0 && (
+                  <div className="col-12 mt-2 bg-white border border-dark border-opacity-25 p-3">
+                    <p className='small fw-bold text-muted mb-2 text-uppercase'>Image Previews</p>
+                    <div className="d-flex flex-wrap gap-3">
+                      {images.map((src, index) => (
+                        <div key={index} className="position-relative border border-dark p-1 bg-light" style={{ width: '70px', height: '85px' }}>
+                          <img src={src} className="w-100 h-100" style={{ objectFit: "cover" }} alt={`Preview ${index + 1}`} />
+                          <button 
+                              type="button" 
+                              className="btn btn-danger btn-sm rounded-0 position-absolute top-0 end-0 p-0 d-flex justify-content-center align-items-center shadow" 
+                              style={{ width: '20px', height: '20px', border: '1px solid white' }}
+                              onClick={() => handleRemoveImage(index)}
+                              title="Remove this photo"
+                          >
+                              <i className="bi bi-x small" style={{ fontSize: '0.65rem', fontWeight: 'bold' }}></i>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="col-12 mt-4 pt-3 border-top">
+                  <label className="small fw-bold text-muted mb-3 text-uppercase d-block">Inventory by Size (Set 0 if out of stock)</label>
+                  <div className="d-flex flex-wrap gap-3">
+                    {formData.sizes.map((sizeObj, index) => (
+                      <div key={sizeObj.size} className="d-flex flex-column align-items-center">
+                        <span className="badge bg-dark rounded-0 mb-1 px-4 py-2 fw-bold text-uppercase">
+                          {sizeObj.size}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          className="form-control rounded-0 border-dark border-opacity-25 text-center fw-bold"
+                          style={{ width: "80px" }}
+                          value={sizeObj.countInStock}
+                          onChange={(e) => handleSizeStockChange(index, e.target.value)}
+                          required
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="col-12 mt-4 pt-3 border-top">
                   <button type="submit" className="btn btn-dark rounded-0 px-5 py-2 fw-bold me-2" disabled={loading}>
                     {loading ? (
@@ -318,8 +378,8 @@ function AdminProducts() {
                   <th className="ps-4 py-3">Product Info</th>
                   <th className="py-3">Category</th>
                   <th className="py-3">Price</th>
-                  <th className="py-3">Stock</th>
-                  <th className="py-3">Sizes</th>
+                  <th className="py-3">Total Stock</th>
+                  <th className="py-3">Sizes Available</th>
                   <th className="text-end pe-4 py-3">Actions</th>
                 </tr>
               </thead>
@@ -327,52 +387,89 @@ function AdminProducts() {
                 {products.length === 0 ? (
                   <tr><td colSpan="6" className="text-center py-5 text-muted italic">Catalog is empty.</td></tr>
                 ) : (
-                  products.map((p) => (
-                    <tr key={p._id}>
-                      <td className="ps-4">
-                        <div className="d-flex align-items-center gap-3">
-                          <img
-                            src={p.image || "https://via.placeholder.com/40x50"}
-                            alt=""
-                            className="border bg-light"
-                            style={{ width: "40px", height: "50px", objectFit: "cover" }}
-                          />
-                          <span className="fw-bold text-dark">{p.name}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge bg-light text-dark border-0 rounded-pill px-3">
-                          {p.category} {p.category === 'Kids' && p.subCategory && p.subCategory !== 'None' ? `(${p.subCategory})` : ''}
-                        </span>
-                      </td>
-                      <td className="fw-bold">₹{p.price?.toLocaleString()}</td>
-                      <td className={p.stock < 5 ? "text-danger fw-bold" : "text-dark"}>{p.stock}</td>
-                      <td>
-                        {p.sizes?.map((s) => (
-                          <span key={s} className="badge bg-light text-muted border me-1 rounded-0 fw-normal">{s}</span>
-                        ))}
-                      </td>
-                      <td className="text-end pe-4">
-                        <button
-                          className="btn btn-sm btn-outline-dark me-2 rounded-0 px-3 fw-bold border-0"
-                          onClick={() => {
-                            setEditingId(p._id);
-                            setFormData({ ...p, imagePreview: p.image });
-                            setShowForm(true);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                        >
-                          EDIT
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger rounded-0 px-3 fw-bold border-0"
-                          onClick={() => handleDelete(p._id)}
-                        >
-                          DELETE
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  products.map((p) => {
+                    const totalStock = p.sizes && typeof p.sizes[0] === 'object'
+                      ? p.sizes.reduce((acc, curr) => acc + (curr.countInStock || 0), 0)
+                      : p.stock || 0; 
+
+                    return (
+                      <tr key={p._id}>
+                        <td className="ps-4">
+                          <div className="d-flex align-items-center gap-3">
+                            <img
+                              // Shows the primary image (first element in images array) or fallback
+                              src={p.images && p.images.length > 0 ? p.images[0] : (p.image || "https://via.placeholder.com/40x50")}
+                              alt=""
+                              className="border bg-light"
+                              style={{ width: "40px", height: "50px", objectFit: "cover" }}
+                            />
+                            <span className="fw-bold text-dark">{p.name}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge bg-light text-dark border-0 rounded-pill px-3">
+                            {p.category} {p.category === 'Kids' && p.subCategory && p.subCategory !== 'None' ? `(${p.subCategory})` : ''}
+                          </span>
+                        </td>
+                        <td className="fw-bold">₹{p.price?.toLocaleString()}</td>
+                        <td className={totalStock < 5 ? "text-danger fw-bold" : "text-dark"}>
+                          {totalStock}
+                        </td>
+                        <td>
+                          {p.sizes?.map((s, idx) => {
+                            if (typeof s === 'object') {
+                              return s.countInStock > 0 ? (
+                                <span key={idx} className="badge bg-light text-muted border me-1 rounded-0 fw-normal">
+                                  {s.size}: {s.countInStock}
+                                </span>
+                              ) : null;
+                            }
+                            return <span key={idx} className="badge bg-light text-muted border me-1 rounded-0 fw-normal">{s}</span>;
+                          })}
+                        </td>
+                        <td className="text-end pe-4">
+                          <button
+                            className="btn btn-sm btn-outline-dark me-2 rounded-0 px-3 fw-bold border-0"
+                            onClick={() => {
+                              const mappedSizes = JSON.parse(JSON.stringify(defaultSizes));
+                              if (p.sizes && typeof p.sizes[0] === 'object') {
+                                p.sizes.forEach(existingSizeObj => {
+                                  const targetIdx = mappedSizes.findIndex(ds => ds.size === existingSizeObj.size);
+                                  if (targetIdx !== -1) mappedSizes[targetIdx].countInStock = existingSizeObj.countInStock;
+                                });
+                              }
+
+                              // Safely extract existing images from DB
+                              const loadedImages = p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+
+                              setEditingId(p._id);
+                              setFormData({
+                                ...p,
+                                sizes: mappedSizes,
+                                subCategory: p.subCategory || "None"
+                              });
+                              
+                              // Load existing photos into state
+                              setExistingImages(loadedImages);
+                              setImages(loadedImages);
+                              setNewFiles([]);
+
+                              setShowForm(true);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                          >
+                            EDIT
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger rounded-0 px-3 fw-bold border-0"
+                            onClick={() => handleDelete(p._id)}
+                          >
+                            DELETE
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

@@ -21,7 +21,7 @@ export default function OrderProvider({ children }) {
     if (!token) return;
 
     try {
-      // Determine endpoint based on isAdmin flag from MongoDB User document
+      // Determine endpoint based on isAdmin flag
       const endpoint = user?.isAdmin ? "/api/admin/orders" : "/api/orders/myorders";
       
       const response = await fetch(`http://localhost:5000${endpoint}`, {
@@ -43,7 +43,7 @@ export default function OrderProvider({ children }) {
   }, [fetchOrders]);
 
   /**
-   * RS7: Place a new order in MongoDB
+   * 2. ADD ORDER
    * Sends order details to the POST /api/orders endpoint
    */
   const addOrder = async (orderData) => {
@@ -59,9 +59,9 @@ export default function OrderProvider({ children }) {
       });
       const data = await response.json();
       if (response.ok) {
-        // Optimistic UI update: prepend the new order to the list
+        // Optimistic UI update
         setOrders(prev => [data, ...prev]);
-        return data._id; // Returns the MongoDB ObjectId
+        return data._id; 
       }
     } catch (err) {
       console.error("Order Placement Error:", err);
@@ -70,8 +70,8 @@ export default function OrderProvider({ children }) {
   };
 
   /**
-   * RS12: Admin updates order status
-   * Triggers status changes (Packed, Shipped, Delivered, Refunded) in MongoDB
+   * 3. ADMIN: UPDATE ORDER STATUS
+   * Hits the Admin-only endpoint to update logistics status
    */
   const updateOrderStatus = async (orderId, status) => {
     const token = localStorage.getItem("token");
@@ -87,7 +87,6 @@ export default function OrderProvider({ children }) {
       
       if (response.ok) {
         const updatedOrder = await response.json();
-        // Update local state to reflect the status change without a full refresh
         setOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
         return true;
       }
@@ -98,33 +97,68 @@ export default function OrderProvider({ children }) {
   };
 
   /**
-   * RS18: Return & Refund Logic
-   * Updates status to "Return Requested" and records the reason
+   * 4. USER: CANCEL ORDER
+   * Uses the user action endpoint to bypass 403 Forbidden errors
    */
-  const requestReturn = async (orderId, reason) => {
-    const token = localStorage.getItem("token");
+  const cancelOrder = async (orderId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/action`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: "Return Requested", returnReason: reason })
+        body: JSON.stringify({ action: 'cancel' }), 
       });
+
+      const data = await response.json();
+
       if (response.ok) {
-        await fetchOrders(); // Full refresh to ensure consistency
-        return true;
+        await fetchOrders(); 
+        return { success: true, message: "Order cancelled successfully." };
+      } else {
+        return { success: false, message: data.message || "Failed to cancel order." };
       }
-    } catch (err) {
-      console.error("Return Request Error:", err);
+    } catch (error) {
+      console.error("Cancel Order Error:", error);
+      return { success: false, message: "Network error occurred." };
     }
-    return false;
   };
 
   /**
-   * RS8: Filtered View for Customers
-   * Allows searching for local state orders by email (case-insensitive)
+   * 5. USER: REQUEST RETURN
+   * Uses the user action endpoint to bypass 403 Forbidden errors
+   */
+  const requestReturn = async (orderId, reason) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/action`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'return', reason: reason }), 
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await fetchOrders(); 
+        return { success: true, message: "Return requested successfully." };
+      } else {
+        return { success: false, message: data.message || "Failed to request return." };
+      }
+    } catch (error) {
+      console.error("Return Request Error:", error);
+      return { success: false, message: "Network error occurred." };
+    }
+  };
+
+  /**
+   * 6. HELPER: GET USER ORDERS
+   * Allows searching for local state orders by email
    */
   const getUserOrders = useCallback((userEmail) => {
     if (!userEmail) return [];
@@ -133,12 +167,13 @@ export default function OrderProvider({ children }) {
 
   return (
     <OrderContext.Provider value={{ 
-      orders,             // Full array for AdminDashboard
+      orders,             // Full array for AdminDashboard / User Dashboard
       fetchOrders,        // Function to manually refresh data
       getUserOrders,      // Helper for OrderHistory page
       addOrder, 
       updateOrderStatus,  // Handler for Admin dropdowns
-      requestReturn
+      cancelOrder,        // Handler for User Cancellation
+      requestReturn       // Handler for User Returns
     }}>
       {children}
     </OrderContext.Provider>

@@ -1,10 +1,18 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../context/CartProvider';
+import { WishlistContext } from '../context/WishlistProvider';
 
+/**
+ * Modern Integrated Header
+ * Features: Dynamic Initial-based Avatar, Mega Menu, Search, and Cart/Wishlist integration.
+ */
 export default function Header({ user, onLogout }) {
   const { cart } = useContext(CartContext);
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
+  
+  const { wishlist } = useContext(WishlistContext); 
+  
   const navigate = useNavigate();
 
   const [activeMenu, setActiveMenu] = useState(null);
@@ -32,6 +40,12 @@ export default function Header({ user, onLogout }) {
       navigate(`/products?search=${searchTerm.trim()}`);
       setSearchTerm("");
     }
+  };
+
+  const handleLogoutClick = () => {
+    localStorage.removeItem("token");
+    if (onLogout) onLogout();
+    window.location.href = "/login"; 
   };
 
   return (
@@ -105,46 +119,62 @@ export default function Header({ user, onLogout }) {
           </form>
         </div>
 
-        {/* 5. ACTION ICONS & ADMIN LOGIC */}
+        {/* 5. ACTION ICONS */}
         <div className="d-flex align-items-center gap-3">
-          {user && (
-            <>
-              {/* PROFILE LINK */}
-              <Link to="/profile" className="text-dark text-decoration-none d-flex flex-column align-items-center">
-                <i className="bi bi-person fs-5"></i>
-                <span className="fw-bold d-none d-md-block ls-1" style={{fontSize: '0.6rem'}}>PROFILE</span>
-              </Link>
-              
-              {/* NEW WISHLIST LINK */}
-              <Link to="/wishlist" className="text-dark text-decoration-none d-flex flex-column align-items-center">
-                <i className="bi bi-heart fs-5"></i>
-                <span className="fw-bold d-none d-md-block ls-1" style={{fontSize: '0.6rem'}}>WISHLIST</span>
-              </Link>
-            </>
-          )}
-
-          {/* BAG LINK */}
-          <Link to="/cart" className="position-relative text-dark text-decoration-none d-flex flex-column align-items-center">
-            <i className="bi bi-bag fs-5"></i>
-            <span className="fw-bold d-none d-md-block ls-1" style={{fontSize: '0.6rem'}}>BAG</span>
-            {cartCount > 0 && (
-              <span className="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style={{fontSize: '0.5rem', padding: '0.25rem 0.4rem'}}>
-                {cartCount}
-              </span>
+          
+          {/* PROFILE ICON / INITIAL AVATAR */}
+          <Link to="/profile" className="text-dark text-decoration-none d-flex flex-column align-items-center">
+            {user?.name ? (
+              /* DYNAMIC INITIAL AVATAR */
+              <div 
+                className="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
+                style={{ width: '28px', height: '28px', fontSize: '0.85rem', fontWeight: '900' }}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            ) : (
+              /* GUEST FALLBACK */
+              <i className="bi bi-person fs-5"></i>
             )}
+            <span className="fw-bold d-none d-md-block ls-1 mt-1" style={{fontSize: '0.6rem'}}>PROFILE</span>
           </Link>
 
-          {/* RESTORED ADMIN & AUTH GROUP */}
+          {/* WISHLIST LINK - HIDDEN FOR ADMINS */}
+          {user && !user.isAdmin && (
+            <Link to="/wishlist" className="position-relative text-dark text-decoration-none d-flex flex-column align-items-center">
+              <i className="bi bi-heart fs-5"></i>
+              <span className="fw-bold d-none d-md-block ls-1" style={{fontSize: '0.6rem'}}>WISHLIST</span>
+              {wishlist && wishlist.length > 0 && (
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style={{fontSize: '0.5rem', padding: '0.25rem 0.4rem'}}>
+                  {wishlist.length}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {/* BAG LINK - HIDDEN FOR ADMINS */}
+          {!user?.isAdmin && (
+            <Link to="/cart" className="position-relative text-dark text-decoration-none d-flex flex-column align-items-center">
+              <i className="bi bi-bag fs-5"></i>
+              <span className="fw-bold d-none d-md-block ls-1" style={{fontSize: '0.6rem'}}>BAG</span>
+              {cartCount > 0 && (
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style={{fontSize: '0.5rem', padding: '0.25rem 0.4rem'}}>
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {/* ADMIN & AUTH GROUP */}
           <div className="d-flex align-items-center gap-2">
             {user ? (
               <>
-                {/* Admin button only shows if user.isAdmin is true */}
                 {user.isAdmin && (
                   <Link to="/admin/dashboard" className="btn btn-outline-danger btn-sm rounded-0 fw-bold px-2 ls-1" style={{ fontSize: '0.65rem' }}>
                     ADMIN
                   </Link>
                 )}
-                <button onClick={onLogout} className="btn btn-dark btn-sm rounded-0 fw-bold px-2 ls-1" style={{ fontSize: '0.65rem' }}>
+                <button onClick={handleLogoutClick} className="btn btn-dark btn-sm rounded-0 fw-bold px-2 ls-1" style={{ fontSize: '0.65rem' }}>
                   LOGOUT
                 </button>
               </>

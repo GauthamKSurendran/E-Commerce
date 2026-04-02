@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 /**
  * Optimized SizeGuide Component
  * Features: Sticky Navigation, Responsive Tables, and Measurement Tips
+ * Standardized for S, M, L, XL, XXL sizes
  */
 const SizeGuide = () => {
   return (
@@ -67,6 +68,7 @@ const SizeGuide = () => {
                   <tr><td className="p-3 fw-black border-end">M</td><td className="p-3 text-muted">38 - 40</td><td className="p-3 text-muted">32 - 35</td><td className="p-3 text-muted">38 - 40</td></tr>
                   <tr><td className="p-3 fw-black border-end">L</td><td className="p-3 text-muted">41 - 44</td><td className="p-3 text-muted">35 - 39</td><td className="p-3 text-muted">41 - 44</td></tr>
                   <tr><td className="p-3 fw-black border-end">XL</td><td className="p-3 text-muted">45 - 48</td><td className="p-3 text-muted">39 - 43</td><td className="p-3 text-muted">45 - 48</td></tr>
+                  <tr><td className="p-3 fw-black border-end">XXL</td><td className="p-3 text-muted">49 - 52</td><td className="p-3 text-muted">44 - 47</td><td className="p-3 text-muted">49 - 52</td></tr>
                 </tbody>
               </table>
             </div>
@@ -89,10 +91,11 @@ const SizeGuide = () => {
                   </tr>
                 </thead>
                 <tbody className="small">
-                  <tr><td className="p-3 fw-black border-end">XS</td><td className="p-3 text-muted">31 - 33</td><td className="p-3 text-muted">24 - 26</td><td className="p-3 text-muted">34 - 36</td></tr>
                   <tr><td className="p-3 fw-black border-end">S</td><td className="p-3 text-muted">33 - 35</td><td className="p-3 text-muted">26 - 28</td><td className="p-3 text-muted">36 - 38</td></tr>
                   <tr><td className="p-3 fw-black border-end">M</td><td className="p-3 text-muted">35 - 37</td><td className="p-3 text-muted">28 - 31</td><td className="p-3 text-muted">38 - 41</td></tr>
                   <tr><td className="p-3 fw-black border-end">L</td><td className="p-3 text-muted">37 - 40</td><td className="p-3 text-muted">31 - 34</td><td className="p-3 text-muted">41 - 44</td></tr>
+                  <tr><td className="p-3 fw-black border-end">XL</td><td className="p-3 text-muted">40 - 43</td><td className="p-3 text-muted">34 - 37</td><td className="p-3 text-muted">44 - 47</td></tr>
+                  <tr><td className="p-3 fw-black border-end">XXL</td><td className="p-3 text-muted">43 - 46</td><td className="p-3 text-muted">37 - 40</td><td className="p-3 text-muted">47 - 50</td></tr>
                 </tbody>
               </table>
             </div>
@@ -108,16 +111,18 @@ const SizeGuide = () => {
               <table className="table border align-middle shadow-sm table-hover mb-0">
                 <thead className="table-light border-bottom border-success border-2">
                   <tr className="extra-small fw-bold text-uppercase ls-1">
-                    <th className="p-3">Age Group</th>
+                    <th className="p-3">Alpha</th>
                     <th className="p-3">Height (in)</th>
                     <th className="p-3">Chest (in)</th>
-                    <th className="p-3">Status</th>
+                    <th className="p-3">Avg. Age</th>
                   </tr>
                 </thead>
                 <tbody className="small">
-                  <tr><td className="p-3 fw-black border-end">2-4Y</td><td className="p-3 text-muted">38 - 41</td><td className="p-3 text-muted">21 - 22</td><td className="p-3 fw-bold text-success">IN STOCK</td></tr>
-                  <tr><td className="p-3 fw-black border-end">5-7Y</td><td className="p-3 text-muted">44 - 50</td><td className="p-3 text-muted">23 - 25</td><td className="p-3 fw-bold text-success">IN STOCK</td></tr>
-                  <tr><td className="p-3 fw-black border-end">8-10Y</td><td className="p-3 text-muted">52 - 55</td><td className="p-3 text-muted">26 - 28</td><td className="p-3 fw-bold text-success">IN STOCK</td></tr>
+                  <tr><td className="p-3 fw-black border-end">S</td><td className="p-3 text-muted">45 - 50</td><td className="p-3 text-muted">24 - 26</td><td className="p-3 text-muted">6 - 7 Yrs</td></tr>
+                  <tr><td className="p-3 fw-black border-end">M</td><td className="p-3 text-muted">51 - 55</td><td className="p-3 text-muted">27 - 28</td><td className="p-3 text-muted">8 - 9 Yrs</td></tr>
+                  <tr><td className="p-3 fw-black border-end">L</td><td className="p-3 text-muted">56 - 60</td><td className="p-3 text-muted">29 - 30</td><td className="p-3 text-muted">10 - 11 Yrs</td></tr>
+                  <tr><td className="p-3 fw-black border-end">XL</td><td className="p-3 text-muted">61 - 63</td><td className="p-3 text-muted">31 - 32</td><td className="p-3 text-muted">12 - 13 Yrs</td></tr>
+                  <tr><td className="p-3 fw-black border-end">XXL</td><td className="p-3 text-muted">64 - 66</td><td className="p-3 text-muted">33 - 34</td><td className="p-3 text-muted">14+ Yrs</td></tr>
                 </tbody>
               </table>
             </div>

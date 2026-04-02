@@ -5,7 +5,7 @@ import ProductCard from "../components/ProductCard";
 
 /**
  * Products Page Component
- * Cleaned and optimized for MERN Stack deployment
+ * Cleaned, optimized, and integrated with Size-Specific Stock filtering
  */
 function Products({ user }) {
   const { products } = useContext(ProductContext);
@@ -13,7 +13,7 @@ function Products({ user }) {
 
   // 1. STATE MANAGEMENT
   const [category, setCategory] = useState("All");
-  const [searchTerm, setSearchTerm] = useState(""); // Removed unused subCategory
+  const [searchTerm, setSearchTerm] = useState("");
   const [priceRange, setPriceRange] = useState(50000); 
   const [selectedSize, setSelectedSize] = useState(""); 
 
@@ -65,8 +65,11 @@ function Products({ user }) {
     // C. Price logic
     const matchesPrice = p.price <= priceRange;
 
-    // D. Variant logic (Size)
-    const matchesSize = selectedSize === "" || (p.sizes && p.sizes.includes(selectedSize));
+    // D. Variant logic (Size & Stock) - UPDATED FOR NEW SCHEMA
+    // We check if the product has the selected size AND if that size's countInStock is greater than 0
+    const matchesSize = selectedSize === "" || (
+      p.sizes && p.sizes.some(s => s.size === selectedSize && s.countInStock > 0)
+    );
 
     return matchesCategory && matchesSearch && matchesPrice && matchesSize;
   });
@@ -114,7 +117,7 @@ function Products({ user }) {
 
             {/* Size Filter */}
             <div className="mb-4">
-              <label className="extra-small fw-bold mb-2 text-muted text-uppercase ls-1">Size Selection</label>
+              <label className="extra-small fw-bold mb-2 text-muted text-uppercase ls-1">Size Selection (In Stock)</label>
               <div className="d-flex flex-wrap gap-2">
                 {["S", "M", "L", "XL", "XXL"].map(size => (
                   <button 

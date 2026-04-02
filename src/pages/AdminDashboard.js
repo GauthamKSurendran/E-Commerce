@@ -1,204 +1,241 @@
-import React, { useContext, useState, useEffect } from "react";
-import { Link } from "react-router-dom"; 
-import { ProductContext } from "../context/ProductProvider";
+import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import { OrderContext } from "../context/OrderProvider"; 
-import { AuthContext } from "../context/AuthContext";    
 
 /**
- * Backend-Integrated Admin Dashboard for FASHION.CO
- * Updated: Made "Recent Orders" table read-only and limited to top 5 recent orders.
+ * Modern Admin Command Center
+ * Features: SaaS-style layout, icon metrics, dynamic routing, recent order preview
  */
-function AdminDashboard() { 
-  const productContext = useContext(ProductContext) || {};
-  // REMOVED: updateOrderStatus is no longer needed here
-  const { orders = [], fetchOrders } = useContext(OrderContext) || {};
-  const { user } = useContext(AuthContext) || {}; 
-
-  const products = productContext.products || [];
-
-  const [totalUserCount, setTotalUserCount] = useState(0);
+export default function AdminDashboard() {
+  const { user } = useContext(AuthContext);
+  const [stats, setStats] = useState({ totalUsers: 0, totalProducts: 0, totalOrders: 0, totalRevenue: 0 });
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. BACKEND STATS SYNCHRONIZATION
+  // We keep the contexts just in case other parts of the app rely on the global sync here,
+  // but we fetch specific admin metrics directly from the backend for speed.
+  const { fetchOrders } = useContext(OrderContext) || {};
+
   useEffect(() => {
-    const fetchAdminStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        
-        if (fetchOrders) {
-          await fetchOrders();
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Fetch Stats
+        const statsRes = await fetch('http://localhost:5000/api/admin/stats', { headers });
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
         }
 
-        const response = await fetch("http://localhost:5000/api/admin/users", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        const data = await response.json();
-        
-        if (response.ok && Array.isArray(data)) {
-          setTotalUserCount(data.length);
+        // Fetch Recent Orders
+        const ordersRes = await fetch('http://localhost:5000/api/admin/orders', { headers });
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+          setRecentOrders(ordersData.slice(0, 5)); // Only show the 5 most recent
         }
-      } catch (err) {
-        console.error("Backend stats connection failed.", err);
+        
+        // Sync global order state in the background
+        if (fetchOrders) {
+           fetchOrders();
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin data", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAdminStats();
+    fetchDashboardData();
   }, [fetchOrders]);
 
-  // 2. ANALYTICS CALCULATIONS
-  const totalOrders = orders.length;
-  const totalProducts = products.length;
-  
-  const totalRevenue = orders.reduce((sum, order) => {
-    // Only count revenue for orders that haven't been cancelled or refunded
-    return !['Refunded', 'Cancelled'].includes(order.status) ? sum + (Number(order.amount) || 0) : sum;
-  }, 0);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Delivered': return 'bg-success text-white';
+      case 'Refunded': return 'bg-secondary text-white';
+      case 'Pending': return 'bg-warning text-dark';
+      case 'Shipped': return 'bg-primary text-white';
+      case 'Cancelled': return 'bg-danger text-white';
+      case 'Return Requested': return 'bg-info text-dark';
+      default: return 'bg-dark text-white';
+    }
+  };
 
-  // 3. RECENT ORDERS LIMITER (Only grabs the 5 most recent)
-  const recentOrders = [...orders].reverse().slice(0, 5);
+  if (loading) {
+    return (
+      <div className="container mt-5 pt-5 text-center min-vh-100 d-flex flex-column justify-content-center align-items-center">
+        <div className="spinner-border text-dark mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
+        <h5 className="fw-bold text-muted uppercase ls-1">Loading Dashboard...</h5>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mt-5 pt-4 animate-in">
-      {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="border-start border-4 border-dark ps-3">
-          <h2 className="fw-black mb-0 text-uppercase ls-1">Admin Command Center</h2>
-          <p className="text-muted small mb-0 fw-bold uppercase">Real-time store metrics and management</p>
+    <div className="bg-light min-vh-100 pb-5" style={{ paddingTop: '100px' }}>
+      <div className="container">
+        
+        {/* HEADER SECTION */}
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 pb-3 border-bottom border-dark border-opacity-10">
+          <div>
+            <h2 className="fw-black text-uppercase ls-1 mb-1">Command Center</h2>
+            <p className="text-muted small fw-bold mb-0">Welcome back, {user?.name || 'System Admin'}</p>
+          </div>
+          <div className="mt-3 mt-md-0 d-flex gap-2">
+            <Link to="/" className="btn btn-outline-dark fw-bold px-4 rounded-3 shadow-sm text-uppercase" style={{ fontSize: '0.8rem' }}>
+              <i className="bi bi-shop me-2"></i> View Storefront
+            </Link>
+          </div>
         </div>
-        <div className="text-end">
-          <span className="badge bg-danger rounded-0 px-3 py-2 mb-2 d-inline-block fw-bold ls-1 shadow-sm">
-            WELCOME, {user?.name?.toUpperCase() || "ADMIN"}
-          </span>
-          <br />
-          <Link to="/" className="btn btn-outline-dark btn-sm rounded-0 fw-bold extra-small">VIEW STOREFRONT</Link>
-        </div>
-      </div>
 
-      {/* Analytics Summary Bar */}
-      <div className="row g-4 mb-5">
-        {[
-          { 
-            label: "TOTAL REVENUE", 
-            value: `₹${totalRevenue.toLocaleString()}`, 
-            color: "text-success",
-            link: "/admin/orders", 
-            linkText: "View Transactions →" 
-          },
-          { label: "REGISTERED USERS", value: loading ? "..." : totalUserCount },
-          { label: "PRODUCT COUNT", value: totalProducts },
-          { label: "ACTIVE ORDERS", value: totalOrders }
-        ].map((stat, idx) => (
-          <div className="col-md-3" key={idx}>
-            <div className="card border-dark shadow-sm p-4 bg-white h-100 rounded-0 d-flex flex-column justify-content-between">
-              <div>
-                <p className="text-muted extra-small fw-black mb-1 ls-1">{stat.label}</p>
-                <h3 className={`fw-black mb-0 ${stat.color || "text-dark"}`}>{stat.value}</h3>
-              </div>
-              {stat.link && (
-                <Link to={stat.link} className="text-decoration-none extra-small fw-bold mt-3 text-primary">
-                  {stat.linkText}
+        {/* METRICS ROW */}
+        <div className="row g-4 mb-5">
+          {/* Revenue Card */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex flex-column justify-content-between">
+                <div className="d-flex justify-content-between align-items-start mb-4">
+                  <div>
+                    <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Total Revenue</p>
+                    <h3 className="fw-black text-success mb-0">₹{stats.totalRevenue?.toLocaleString()}</h3>
+                  </div>
+                  <div className="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                    <i className="bi bi-wallet2 fs-4"></i>
+                  </div>
+                </div>
+                {/* ISOLATED REVENUE LINK */}
+                <Link to="/admin/revenue" className="text-decoration-none fw-bold small text-success d-flex align-items-center">
+                  View Transactions <i className="bi bi-arrow-right ms-2"></i>
                 </Link>
-              )}
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Navigation Cards */}
-      <div className="row g-4 mb-5">
-        <div className="col-lg-6">
-          <div className="card p-5 shadow-sm border-0 h-100 bg-dark text-white rounded-0 text-center">
-            <h4 className="fw-black mb-3 text-uppercase ls-1">Inventory Management</h4>
-            <p className="opacity-75 mb-4 text-uppercase extra-small fw-bold ls-2">
-              Current Stock: {totalProducts} Unique Items
-            </p>
-            <Link to="/admin/products" className="btn btn-light py-3 fw-black rounded-0 ls-1">
-              OPEN PRODUCT CATALOG
-            </Link>
+          {/* Orders Card */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex flex-column justify-content-between">
+                <div className="d-flex justify-content-between align-items-start mb-4">
+                  <div>
+                    <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Active Orders</p>
+                    <h3 className="fw-black mb-0">{stats.totalOrders}</h3>
+                  </div>
+                  <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                    <i className="bi bi-box-seam fs-4"></i>
+                  </div>
+                </div>
+                <Link to="/admin/orders" className="text-decoration-none fw-bold small text-primary d-flex align-items-center">
+                  Manage Orders <i className="bi bi-arrow-right ms-2"></i>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Products Card */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex flex-column justify-content-between">
+                <div className="d-flex justify-content-between align-items-start mb-4">
+                  <div>
+                    <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Product Catalog</p>
+                    <h3 className="fw-black mb-0">{stats.totalProducts}</h3>
+                  </div>
+                  <div className="bg-dark bg-opacity-10 text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                    <i className="bi bi-tags fs-4"></i>
+                  </div>
+                </div>
+                <Link to="/admin/products" className="text-decoration-none fw-bold small text-dark d-flex align-items-center">
+                  Inventory Manager <i className="bi bi-arrow-right ms-2"></i>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Users Card */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex flex-column justify-content-between">
+                <div className="d-flex justify-content-between align-items-start mb-4">
+                  <div>
+                    <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Registered Users</p>
+                    <h3 className="fw-black mb-0">{stats.totalUsers}</h3>
+                  </div>
+                  <div className="bg-info bg-opacity-10 text-info rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                    <i className="bi bi-people fs-4 text-dark"></i>
+                  </div>
+                </div>
+                <Link to="/admin/users" className="text-decoration-none fw-bold small text-info text-dark d-flex align-items-center">
+                  User Analytics <i className="bi bi-arrow-right ms-2"></i>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="col-lg-6">
-          <div className="card p-5 shadow-sm border-0 h-100 rounded-0 border-dark text-center">
-            <h4 className="fw-black mb-3 text-dark text-uppercase ls-1">User Management</h4>
-            <p className="text-muted mb-4 text-uppercase extra-small fw-bold ls-2">
-              Total Customers: {totalUserCount} Active Accounts
-            </p>
-            <Link to="/admin/users" className="btn btn-dark py-3 fw-black rounded-0 ls-1">
-              VIEW USER ANALYTICS
+
+        {/* RECENT ORDERS TABLE SECTION */}
+        <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+          <div className="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+            <h5 className="fw-black text-uppercase ls-1 mb-0">Recent Customer Orders</h5>
+            <Link to="/admin/orders" className="btn btn-dark btn-sm fw-bold px-3 rounded-3 text-uppercase" style={{ fontSize: '0.75rem' }}>
+              Manage All Orders
             </Link>
           </div>
-        </div>
-      </div>
-
-      {/* Recent Orders Table (Read-Only) */}
-      <div className="card p-4 shadow-sm border-0 mb-5 rounded-0 border-top border-4 border-dark">
-        <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-            <h4 className="fw-black mb-0 text-uppercase ls-1">Recent Customer Orders</h4>
-            <Link to="/admin/orders" className="btn btn-dark btn-sm rounded-0 px-3 py-2 fw-bold">
-              MANAGE ALL ORDERS
-            </Link>
-        </div>
-        
-        <div className="table-responsive">
-          <table className="table align-middle table-hover border">
-            <thead className="table-dark">
-              <tr className="extra-small fw-bold text-uppercase ls-1">
-                <th className="py-3 ps-3">Order ID</th>
-                <th className="py-3">Customer</th>
-                <th className="py-3">Amount</th>
-                <th className="py-3 text-end pe-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="text-center py-5 text-muted">
-                    <p className="mb-0 fw-bold uppercase small">No recent orders found in MongoDB.</p>
-                  </td>
-                </tr>
-              ) : (
-                recentOrders.map(order => (
-                  <tr key={order._id}>
-                    <td className="font-monospace extra-small text-primary fw-bold ps-3">
-                      #{order._id?.substring(order._id.length - 8).toUpperCase()}
-                      <div className="text-muted mt-1">{new Date(order.createdAt).toLocaleDateString()}</div>
-                    </td>
-                    <td>
-                      <div className="extra-small fw-black text-uppercase">{order.userName || "Guest"}</div>
-                    </td>
-                    <td className="fw-black text-dark">₹{Number(order.amount)?.toLocaleString() || 0}</td>
-                    <td className="text-end pe-4">
-                      <span className={`badge rounded-0 px-3 py-2 extra-small fw-bold ${
-                        order.status === 'Delivered' ? 'bg-success' : 
-                        order.status === 'Shipped' ? 'bg-primary' : 
-                        order.status === 'Refunded' ? 'bg-secondary text-white' :
-                        order.status === 'Return Requested' ? 'bg-info text-dark' :
-                        order.status === 'Cancelled' ? 'bg-danger text-white' :
-                        order.status === 'Packed' ? 'bg-dark text-white' : 'bg-warning text-dark'
-                      }`}>
-                        {(order.status || "PENDING").toUpperCase()}
-                      </span>
-                      
-                      {/* Show Return Reason if applicable */}
-                      {order.status === 'Return Requested' && order.returnReason && (
-                          <div className="mt-1 extra-small text-danger fw-bold">
-                              Reason: {order.returnReason}
-                          </div>
-                      )}
-                    </td>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light text-muted small text-uppercase">
+                  <tr>
+                    <th className="ps-4 py-3 fw-bold border-bottom-0">Order ID & Date</th>
+                    <th className="py-3 fw-bold border-bottom-0">Customer</th>
+                    <th className="py-3 fw-bold border-bottom-0">Amount</th>
+                    <th className="py-3 pe-4 fw-bold border-bottom-0 text-end">Status</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {recentOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-5 text-muted">No orders found.</td>
+                    </tr>
+                  ) : (
+                    recentOrders.map((order) => (
+                      <tr key={order._id} style={{ cursor: 'pointer' }} onClick={() => window.location.href='/admin/orders'}>
+                        <td className="ps-4 py-3">
+                          <div className="fw-bold text-primary font-monospace" style={{ fontSize: '0.85rem' }}>
+                            #{order._id.substring(order._id.length - 8).toUpperCase()}
+                          </div>
+                          <div className="text-muted extra-small">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="fw-bold text-dark text-uppercase" style={{ fontSize: '0.85rem' }}>{order.userName || 'Guest'}</div>
+                          <div className="text-muted extra-small">{order.userEmail}</div>
+                        </td>
+                        <td className="py-3 fw-black text-dark">
+                          ₹{order.amount.toLocaleString()}
+                        </td>
+                        <td className="py-3 pe-4 text-end">
+                          <span className={`badge px-3 py-2 rounded-pill fw-bold text-uppercase ${getStatusBadge(order.status)}`} style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+                            {order.status}
+                          </span>
+                           {/* Show Return Reason if applicable */}
+                           {order.status === 'Return Requested' && order.returnReason && (
+                              <div className="mt-1 extra-small text-danger fw-bold text-end">
+                                Reason: {order.returnReason}
+                              </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
   );
 }
-
-export default AdminDashboard;

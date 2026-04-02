@@ -30,11 +30,11 @@ import OrderSuccess from './pages/OrderSuccess';
 import AdminOrders from './pages/AdminOrders';
 import NotFound from './pages/NotFound';
 
-// NEW IMPORTS: Size Guide, Payment, and Revenue Intelligence
+// NEW IMPORTS: Size Guide, Payment, Revenue, and Contact Support
 import SizeGuide from './pages/SizeGuide'; 
 import PaymentGateway from './pages/PaymentGateway';
-// FIX: Added RevenueReport to handle the breakdown of your ₹4,597 earnings
 import RevenueReport from './pages/RevenueReport'; 
+import Contact from './pages/Contact'; // ADDED: Proper Contact Support Page
 
 import './App.css';
 
@@ -59,23 +59,23 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/size-guide" element={<SizeGuide />} />
+          
+          {/* PROPER FIX: Dedicated Contact Support Route */}
+          <Route path="/contact" element={<Contact />} />
 
-          {/* --- USER PROTECTED ROUTES (Requires standard login) --- */}
+          {/* --- USER PROTECTED ROUTES --- */}
           <Route path="/checkout" element={user ? <Checkout user={user} /> : <Navigate to="/login" />} />
           <Route path="/payment-gateway" element={user ? <PaymentGateway user={user} /> : <Navigate to="/login" />} />
           <Route path="/order-success" element={user ? <OrderSuccess user={user} /> : <Navigate to="/login" />} />
-          <Route path="/orders" element={user ? <OrderHistory user={user} /> : <Navigate to="/login" />} />
+          <Route path="/order-history" element={user ? <OrderHistory user={user} /> : <Navigate to="/login" />} />
           <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
           <Route path="/wishlist" element={user ? <Wishlist user={user} /> : <Navigate to="/login" />} />
 
-          {/* --- ADMIN PROTECTED ROUTES (Requires isAdmin: true) --- */}
-          {/* Dashboard with Total Revenue tracking */}
+          {/* --- ADMIN PROTECTED ROUTES --- */}
           <Route path="/admin/dashboard" element={user?.isAdmin ? <AdminDashboard user={user} /> : <Navigate to="/admin/login" />} />
           <Route path="/admin/products" element={user?.isAdmin ? <AdminProducts user={user} /> : <Navigate to="/admin/login" />} />
           <Route path="/admin/users" element={user?.isAdmin ? <AdminUsers user={user} /> : <Navigate to="/admin/login" />} />
           <Route path="/admin/orders" element={user?.isAdmin ? <AdminOrders user={user} /> : <Navigate to="/admin/login" />} />
-          
-          {/* NEW: Financial Reporting for categorical earnings breakdown */}
           <Route path="/admin/revenue" element={user?.isAdmin ? <RevenueReport /> : <Navigate to="/admin/login" />} />
 
           {/* Fallback for 404 */}
@@ -89,7 +89,6 @@ function AppContent() {
 
 /**
  * Root App wrapping all MERN Context Providers
- * Provides global state for Products, Orders, and Security
  */
 function App() {
   return (

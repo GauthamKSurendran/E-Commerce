@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 
 const AdminProductForm = ({ onProductAdded, onClose }) => {
-  // 1. STATE MANAGEMENT
+  // 1. STATE MANAGEMENT (Updated for Size-Specific Stock)
   const [loading, setLoading] = useState(false);
   const [productData, setProductData] = useState({
     name: "",
     price: "",
     category: "Men",
     images: ["", "", ""], // [0]: Front, [1]: Back, [2]: Side
-    stock: "",
     description: "",
-    sizes: [] 
+    sizes: [
+      { size: "S", countInStock: 0 },
+      { size: "M", countInStock: 0 },
+      { size: "L", countInStock: 0 },
+      { size: "XL", countInStock: 0 },
+      { size: "XXL", countInStock: 0 },
+    ] 
   });
 
   // 2. IMAGE HANDLER (Converts File to Base64 for the Backend)
@@ -26,14 +31,14 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleSizeToggle = (size) => {
-    const newSizes = productData.sizes.includes(size)
-      ? productData.sizes.filter(s => s !== size)
-      : [...productData.sizes, size];
-    setProductData({ ...productData, sizes: newSizes });
+  // 3. NEW: SIZE-SPECIFIC STOCK HANDLER
+  const handleSizeStockChange = (index, value) => {
+    const updatedSizes = [...productData.sizes];
+    updatedSizes[index].countInStock = Number(value);
+    setProductData({ ...productData, sizes: updatedSizes });
   };
 
-  // 3. BACKEND INTEGRATION HANDLER
+  // 4. BACKEND INTEGRATION HANDLER
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -45,11 +50,10 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
       name: productData.name,
       price: Number(productData.price),
       category: productData.category,
-      stock: Number(productData.stock),
       description: productData.description,
-      sizes: productData.sizes,
-      image: validImages[0], // Sending the primary image as 'image'
-      allImages: validImages // If your schema supports an array of images
+      sizes: productData.sizes, // Sending the array of size objects directly
+      image: validImages[0], 
+      allImages: validImages 
     };
 
     try {
@@ -93,6 +97,7 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
 
       <form onSubmit={handleSubmit}>
         <div className="row g-4">
+          
           {/* MULTI-IMAGE UPLOADS */}
           <div className="col-12">
             <label className="extra-small fw-bold text-muted text-uppercase ls-1 d-block mb-3">
@@ -141,7 +146,7 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
             </select>
           </div>
 
-          <div className="col-md-6">
+          <div className="col-md-12">
             <label className="extra-small fw-bold text-muted text-uppercase ls-1 mb-1">Price (₹)</label>
             <input 
               type="number" 
@@ -152,30 +157,27 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
             />
           </div>
 
-          <div className="col-md-6">
-            <label className="extra-small fw-bold text-muted text-uppercase ls-1 mb-1">Stock Qty</label>
-            <input 
-              type="number" 
-              className="form-control rounded-0 border-light bg-light shadow-none" 
-              value={productData.stock} 
-              onChange={(e) => setProductData({...productData, stock: e.target.value})} 
-              required 
-            />
-          </div>
-
-          <div className="col-12 mt-2">
-            <label className="extra-small fw-bold text-muted text-uppercase ls-1 d-block mb-2">Available Sizes</label>
-            <div className="d-flex gap-2">
-              {["S", "M", "L", "XL", "XXL"].map(size => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => handleSizeToggle(size)}
-                  className={`btn btn-sm rounded-0 border fw-bold ${productData.sizes.includes(size) ? 'btn-dark' : 'btn-outline-dark'}`}
-                  style={{ width: '45px', height: '45px' }}
-                >
-                  {size}
-                </button>
+          {/* NEW: SIZE-SPECIFIC INVENTORY GRID */}
+          <div className="col-12 mt-4">
+            <label className="extra-small fw-bold text-muted text-uppercase ls-1 d-block mb-3">
+              Inventory by Size (Enter 0 if out of stock)
+            </label>
+            <div className="d-flex flex-wrap gap-3">
+              {productData.sizes.map((sizeObj, index) => (
+                <div key={sizeObj.size} className="d-flex flex-column align-items-center">
+                  <span className="badge bg-dark rounded-0 mb-1 px-4 py-2 fw-bold text-uppercase">
+                    {sizeObj.size}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-control rounded-0 border-light bg-light shadow-none text-center fw-bold"
+                    style={{ width: '80px' }}
+                    value={sizeObj.countInStock}
+                    onChange={(e) => handleSizeStockChange(index, e.target.value)}
+                    required
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -183,12 +185,13 @@ const AdminProductForm = ({ onProductAdded, onClose }) => {
           <div className="col-12 mt-4 d-flex gap-2">
             <button 
               type="submit" 
-              className="btn btn-dark rounded-0 px-5 py-3 fw-bold ls-1"
+              className="btn btn-dark rounded-0 px-5 py-3 fw-bold ls-1 w-100"
               disabled={loading}
             >
               {loading ? "SAVING TO DATABASE..." : "SAVE PRODUCT"}
             </button>
           </div>
+
         </div>
       </form>
     </div>

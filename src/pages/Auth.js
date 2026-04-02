@@ -33,8 +33,7 @@ export default function Auth() {
       : { email: formData.email, password: formData.password };
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: 'POST',
+        const response = await fetch(`https://e-commerce-backend-9-t3c1.onrender.com${endpoint}`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

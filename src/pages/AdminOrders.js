@@ -1,15 +1,15 @@
 import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom'; // NEW: Imported Link for the simple navigation
 import { OrderContext } from '../context/OrderProvider';
-import AdminNavbar from './AdminNavbar'; 
 
 /**
- * Backend-Integrated Admin Orders & Revenue Intelligence
- * Features: Live Financial Tracking and Multi-Directional Date Sorting
+ * Modern Admin Orders & Revenue Intelligence
+ * Features: Live Financial Tracking, SaaS-style UI, Unified Status Badges, Minimal Navigation
  */
 const AdminOrders = () => {
   const { orders, fetchOrders, updateOrderStatus } = useContext(OrderContext);
   const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for newest first
+  const [sortOrder, setSortOrder] = useState('desc'); 
 
   // 1. DATA SYNCHRONIZATION
   const loadInitialData = useCallback(async () => {
@@ -22,11 +22,9 @@ const AdminOrders = () => {
   }, [loadInitialData]); 
 
   // 2. REVENUE INTELLIGENCE CALCULATIONS
-  // Calculates live financial metrics from MongoDB Order History
   const revenueStats = useMemo(() => {
     return orders.reduce((acc, order) => {
       const amount = Number(order.amount) || 0;
-      // Do not add Cancelled or Refunded to Gross Revenue
       if (!['Cancelled', 'Refunded'].includes(order.status)) {
           acc.total += amount;
       }
@@ -51,29 +49,26 @@ const AdminOrders = () => {
     });
   }, [orders, sortOrder]);
 
-  // Helper for dynamic badge colors
-  const getStatusClass = (status) => {
+  // 4. UNIFIED STATUS BADGES
+  const getStatusBadge = (status) => {
     switch (status) {
-      case 'Delivered': return 'bg-success';
-      case 'Shipped': return 'bg-primary';
-      case 'Packed': return 'bg-info text-dark';
-      case 'Return Requested': return 'bg-warning text-dark'; 
-      case 'Refunded': return 'bg-secondary';       
-      case 'Cancelled': return 'bg-danger'; 
-      case 'Pending': return 'bg-dark text-white';
-      default: return 'bg-secondary text-white';
+      case 'Delivered': return 'bg-success text-white';
+      case 'Refunded': return 'bg-secondary text-white';
+      case 'Pending': return 'bg-warning text-dark';
+      case 'Shipped': return 'bg-primary text-white';
+      case 'Cancelled': return 'bg-danger text-white';
+      case 'Return Requested': return 'bg-info text-dark';
+      case 'Packed': return 'bg-dark text-white';
+      default: return 'bg-light text-dark border';
     }
   };
 
-  // 4. FULFILLMENT LOGIC (Backend Integrated)
+  // 5. FULFILLMENT LOGIC
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const result = await updateOrderStatus(orderId, newStatus);
-      
-      // CRITICAL FIX: Accepts BOTH a boolean (true) AND an object ({ success: true })
       if (result === true || (result && result.success)) {
-        // Optional: Alert the admin on success
-        // alert(`Order updated to ${newStatus.toUpperCase()} successfully.`);
+        // Success silently updates
       } else {
         alert("Failed to update status. Please check your connection.");
       }
@@ -84,135 +79,183 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="bg-light min-vh-100">
-      <AdminNavbar /> 
-      
-      <div className="container py-4 animate-in">
+    <div className="bg-light min-vh-100 pb-5">
+      <div className="container animate-in" style={{ paddingTop: '50px' }}>
+        
+        {/* SIMPLE NAVIGATION LINK */}
+        <Link to="/admin/dashboard" className="text-decoration-none text-muted small fw-bold mb-4 d-inline-block ls-1">
+          &larr; BACK TO COMMAND CENTER
+        </Link>
+        
         {/* REVENUE INTELLIGENCE SUMMARY BAR */}
-        <div className="row g-3 mb-4">
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm bg-dark text-white p-3 rounded-0">
-              <p className="extra-small fw-black ls-2 text-uppercase opacity-75 mb-1">Gross Revenue</p>
-              <h4 className="fw-black mb-0">₹{revenueStats.total.toLocaleString()}</h4>
+        <div className="row g-4 mb-5">
+          {/* Gross Revenue */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Gross Revenue</p>
+                  <h4 className="fw-black mb-0">₹{revenueStats.total.toLocaleString()}</h4>
+                </div>
+                <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                  <i className="bi bi-wallet2 fs-4"></i>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm bg-success text-white p-3 rounded-0">
-              <p className="extra-small fw-black ls-2 text-uppercase opacity-75 mb-1">Collected</p>
-              <h4 className="fw-black mb-0">₹{revenueStats.collected.toLocaleString()}</h4>
+          
+          {/* Collected */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Collected</p>
+                  <h4 className="fw-black text-success mb-0">₹{revenueStats.collected.toLocaleString()}</h4>
+                </div>
+                <div className="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                  <i className="bi bi-check-circle fs-4"></i>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm bg-primary text-white p-3 rounded-0">
-              <p className="extra-small fw-black ls-2 text-uppercase opacity-75 mb-1">Processing</p>
-              <h4 className="fw-black mb-0">₹{revenueStats.processing.toLocaleString()}</h4>
+
+          {/* Processing */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Processing</p>
+                  <h4 className="fw-black text-warning mb-0">₹{revenueStats.processing.toLocaleString()}</h4>
+                </div>
+                <div className="bg-warning bg-opacity-10 text-warning rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                  <i className="bi bi-hourglass-split fs-4"></i>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm bg-secondary text-white p-3 rounded-0">
-              <p className="extra-small fw-black ls-2 text-uppercase opacity-75 mb-1">Refunded</p>
-              <h4 className="fw-black mb-0">₹{revenueStats.refunded.toLocaleString()}</h4>
+
+          {/* Refunded */}
+          <div className="col-xl-3 col-md-6">
+            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+              <div className="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="text-muted fw-bold extra-small text-uppercase ls-1 mb-1">Refunded</p>
+                  <h4 className="fw-black text-secondary mb-0">₹{revenueStats.refunded.toLocaleString()}</h4>
+                </div>
+                <div className="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex justify-content-center align-items-center" style={{ width: '48px', height: '48px' }}>
+                  <i className="bi bi-arrow-return-left fs-4"></i>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* LOG HEADER & SORTING TOGGLE */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="border-start border-4 border-dark ps-3">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+          <div>
             <h2 className="fw-black m-0 text-uppercase ls-1">Live Order Management</h2>
             <p className="extra-small text-muted mb-0 fw-bold uppercase">Trace every transaction back to source</p>
           </div>
-          <div className="d-flex gap-2">
+          <div className="d-flex gap-2 mt-3 mt-md-0">
             <button 
-              className="btn btn-sm btn-outline-dark rounded-0 fw-bold extra-small"
+              className="btn btn-outline-dark rounded-3 fw-bold px-4 d-flex align-items-center text-uppercase shadow-sm"
+              style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}
               onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
             >
-              SORT BY DATE: {sortOrder === 'desc' ? 'NEWEST FIRST' : 'OLDEST FIRST'}
+              <i className={`bi bi-sort-${sortOrder === 'desc' ? 'down' : 'up'} me-2 fs-6`}></i> 
+              {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
             </button>
-            <span className="badge bg-dark rounded-0 px-4 py-3 fw-bold ls-1 shadow-sm">
-              ACTIVE ORDERS: {orders.length}
+            <span className="badge bg-dark rounded-3 px-4 py-2 d-flex align-items-center fw-bold ls-1 shadow-sm">
+              ACTIVE: {orders.length}
             </span>
           </div>
         </div>
 
+        {/* MODERN TABLE WRAPPER */}
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-dark" role="status"></div>
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-5 border bg-white shadow-sm rounded-0">
-            <h4 className="fw-black text-uppercase mt-3">No active orders found in MongoDB</h4>
+          <div className="card border-0 shadow-sm rounded-4 text-center py-5">
+            <div className="card-body">
+              <i className="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+              <h5 className="fw-black text-uppercase">No active orders found</h5>
+            </div>
           </div>
         ) : (
-          <div className="table-responsive bg-white shadow-sm border border-dark rounded-0">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-dark extra-small text-uppercase ls-2">
-                <tr>
-                  <th className="py-3 ps-3">Order Log</th>
-                  <th className="py-3">Customer</th>
-                  <th className="py-3">Items Details</th>
-                  <th className="py-3">Revenue Contribution</th>
-                  <th className="py-3">Status</th>
-                  <th className="py-3 text-center pe-3">Update</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedOrders.map((order) => (
-                  <tr key={order._id}>
-                    <td className="ps-3">
-                      <div className="extra-small font-monospace fw-bold text-primary">
-                        #{order._id.substring(order._id.length - 8).toUpperCase()}
-                      </div>
-                      <div className="extra-small text-muted fw-bold">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="extra-small fw-black text-uppercase">{order.userName || "Guest"}</div>
-                      <div className="extra-small text-muted fw-bold">{order.userEmail}</div>
-                    </td>
-                    <td>
-                      {order.items?.map((item, idx) => (
-                        <div key={idx} className="extra-small text-muted fw-bold">
-                          {item.name} <span className="text-dark">(x{item.quantity})</span>
-                        </div>
-                      ))}
-                    </td>
-                    <td className="fw-black text-dark">
-                      ₹{order.amount?.toLocaleString()}
-                    </td>
-                    <td>
-                      <span className={`badge rounded-0 w-100 py-2 extra-small fw-black ls-1 ${getStatusClass(order.status)}`}>
-                        {order.status.toUpperCase()}
-                      </span>
-                      
-                      {order.status === 'Return Requested' && order.returnReason && (
-                          <div className="mt-2 extra-small text-danger fw-bold border-top pt-1">
-                              Reason: {order.returnReason}
-                          </div>
-                      )}
-                    </td>
-                    <td className="pe-3">
-                      <select 
-                        className="form-select form-select-sm rounded-0 border-dark shadow-none fw-black"
-                        style={{ fontSize: '10px' }}
-                        value={order.status}
-                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                        disabled={['Cancelled', 'Refunded'].includes(order.status)}
-                      >
-                        <option value="Pending">PENDING</option>
-                        <option value="Packed">PACKED</option>
-                        <option value="Shipped">SHIPPED</option>
-                        <option value="Delivered">DELIVERED</option>
-                        <option value="Return Requested" disabled>RETURN REQ</option>
-                        <option value="Refunded">REFUND (Approve Return)</option>
-                        <option value="Cancelled" disabled>CANCELLED</option>
-                      </select>
-                    </td>
+          <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light text-muted small text-uppercase">
+                  <tr>
+                    <th className="ps-4 py-3 fw-bold border-bottom-0">Order Log</th>
+                    <th className="py-3 fw-bold border-bottom-0">Customer</th>
+                    <th className="py-3 fw-bold border-bottom-0">Items Details</th>
+                    <th className="py-3 fw-bold border-bottom-0">Total</th>
+                    <th className="py-3 fw-bold border-bottom-0">Status</th>
+                    <th className="pe-4 py-3 fw-bold border-bottom-0 text-end">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sortedOrders.map((order) => (
+                    <tr key={order._id}>
+                      <td className="ps-4 py-3">
+                        <div className="font-monospace fw-bold text-primary" style={{ fontSize: '0.85rem' }}>
+                          #{order._id.substring(order._id.length - 8).toUpperCase()}
+                        </div>
+                        <div className="extra-small text-muted fw-bold mt-1">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="extra-small fw-black text-uppercase text-dark">{order.userName || "Guest"}</div>
+                        <div className="extra-small text-muted fw-bold">{order.userEmail}</div>
+                      </td>
+                      <td className="py-3">
+                        {order.items?.map((item, idx) => (
+                          <div key={idx} className="extra-small text-muted fw-bold">
+                            {item.name} <span className="text-dark">(x{item.quantity})</span>
+                          </div>
+                        ))}
+                      </td>
+                      <td className="py-3 fw-black text-dark">
+                        ₹{order.amount?.toLocaleString()}
+                      </td>
+                      <td className="py-3">
+                        <span className={`badge px-3 py-2 rounded-pill fw-bold text-uppercase ${getStatusBadge(order.status)}`} style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+                          {order.status === 'Pending' && <span className="spinner-grow spinner-grow-sm me-2" style={{width: '0.5rem', height: '0.5rem'}} role="status"></span>}
+                          {order.status}
+                        </span>
+                        
+                        {order.status === 'Return Requested' && order.returnReason && (
+                            <div className="mt-2 extra-small text-danger fw-bold border-top border-danger pt-1" style={{ maxWidth: '150px', whiteSpace: 'normal' }}>
+                              Reason: {order.returnReason}
+                            </div>
+                        )}
+                      </td>
+                      <td className="pe-4 py-3 text-end">
+                        <select 
+                          className="form-select form-select-sm rounded-3 fw-bold extra-small border-dark border-opacity-25 shadow-none d-inline-block"
+                          style={{ width: '130px', cursor: 'pointer' }}
+                          value={order.status}
+                          onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                          disabled={['Cancelled', 'Refunded'].includes(order.status)}
+                        >
+                          <option value="Pending">PENDING</option>
+                          <option value="Packed">PACKED</option>
+                          <option value="Shipped">SHIPPED</option>
+                          <option value="Delivered">DELIVERED</option>
+                          <option value="Return Requested" disabled>RETURN REQ</option>
+                          <option value="Refunded">REFUND</option>
+                          <option value="Cancelled" disabled>CANCELLED</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

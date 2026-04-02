@@ -1,16 +1,16 @@
 import React, { useContext, useState, useEffect } from "react";
 import { CartContext } from "../context/CartProvider";
-import { AuthContext } from "../context/AuthContext"; // NEW: Import AuthContext
+import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 /**
  * Integrated Shopping Cart Component for FASHION.CO
  * Aligned with MongoDB cartSchema: safely handles productId, size, and quantity.
- * Directly connected to AuthContext to prevent stale login states.
+ * Includes Size-Specific Inventory Validation.
  */
-export default function Cart() { // REMOVED the user prop
+export default function Cart() { 
   const { cart, removeFromCart, updateQty } = useContext(CartContext);
-  const { user } = useContext(AuthContext) || {}; // NEW: Pull user directly from global state
+  const { user } = useContext(AuthContext) || {}; 
   const navigate = useNavigate();
 
   // 1. SELECTION STATE: Track which items are checked for checkout
@@ -19,7 +19,6 @@ export default function Cart() { // REMOVED the user prop
   // Default to selecting all items when the cart initially loads
   useEffect(() => {
     const allKeys = cart.map(item => {
-      // Bridge between DB schema and Frontend state
       const id = item.productId || item._id;
       const size = item.size || item.selectedSize || 'N/A';
       return `${id}-${size}`;
@@ -54,6 +53,13 @@ export default function Cart() { // REMOVED the user prop
   const handleProceedToCheckout = () => {
     if (selectedItems.length === 0) {
       alert("Please select at least one item to checkout.");
+      return;
+    }
+    
+    // Check if any selected item is currently out of stock
+    const outOfStockItems = selectedItems.filter(item => item.maxStock === 0);
+    if (outOfStockItems.length > 0) {
+      alert("One or more items in your cart are currently out of stock. Please remove them to proceed.");
       return;
     }
     
@@ -95,12 +101,14 @@ export default function Cart() { // REMOVED the user prop
       <div className="row g-5">
         <div className="col-lg-8">
           {cart.map((item, index) => {
-            // Safe Variable Extraction (Supports both DB schema and React Context state)
+            // Safe Variable Extraction
             const id = item.productId || item._id;
             const size = item.size || item.selectedSize || 'N/A';
             const qty = item.quantity || item.qty;
+            const maxStock = item.maxStock !== undefined ? item.maxStock : 99; // Added maxStock logic
             const itemKey = `${id}-${size}`;
             const isSelected = selectedItemKeys.includes(itemKey);
+            const isOutOfStock = maxStock === 0;
 
             return (
               <div key={`${itemKey}-${index}`} className="row border-bottom pb-4 mb-4 align-items-center">
@@ -110,47 +118,54 @@ export default function Cart() { // REMOVED the user prop
                   <input 
                     className="form-check-input fs-5 border-dark rounded-0 cursor-pointer shadow-none" 
                     type="checkbox" 
-                    checked={isSelected}
+                    checked={isSelected && !isOutOfStock}
+                    disabled={isOutOfStock}
                     onChange={() => handleCheckboxChange(itemKey)}
                   />
                 </div>
 
-                <div className="col-3 col-md-2">
+                <div className="col-3 col-md-2 position-relative">
                   <img 
                     src={item.image || 'https://via.placeholder.com/150'} 
                     alt={item.name} 
-                    className={`img-fluid border ${!isSelected && 'opacity-50'}`} 
+                    className={`img-fluid border ${(!isSelected || isOutOfStock) && 'opacity-50'}`} 
                     onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = 'https://via.placeholder.com/150';
                     }} 
                   />
+                  {isOutOfStock && (
+                     <span className="position-absolute top-50 start-50 translate-middle badge bg-danger rounded-0 px-2 py-1 small fw-bold" style={{ whiteSpace: 'nowrap' }}>
+                       OUT OF STOCK
+                     </span>
+                  )}
                 </div>
                 
                 <div className="col-8 col-md-9">
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
-                      <h6 className={`fw-bold mb-1 ${!isSelected && 'text-muted'}`}>{item.name}</h6>
+                      <h6 className={`fw-bold mb-1 ${(!isSelected || isOutOfStock) && 'text-muted'}`}>{item.name}</h6>
                       <p className="text-muted extra-small mb-3 text-uppercase">
                         SIZE: {size}
                       </p>
                       
                       <div className="d-flex align-items-center gap-3">
-                        {/* QUANTITY CONTROLS */}
+                        {/* QUANTITY CONTROLS WITH MAX STOCK VALIDATION */}
                         <div className="input-group input-group-sm" style={{width: '110px'}}>
                           <button 
                             className="btn btn-outline-dark rounded-0 border-end-0 fw-bold shadow-none" 
-                            onClick={() => updateQty(id, size, qty - 1)}
-                            disabled={qty <= 1}
+                            onClick={() => updateQty(id, size, qty - 1, maxStock)}
+                            disabled={qty <= 1 || isOutOfStock}
                           >
                             -
                           </button>
-                          <span className="input-group-text bg-white border-dark rounded-0 px-3 fw-bold">
-                            {qty}
+                          <span className="input-group-text bg-white border-dark rounded-0 px-3 fw-bold text-center" style={{ width: '40px' }}>
+                            {isOutOfStock ? 0 : qty}
                           </span>
                           <button 
                             className="btn btn-outline-dark rounded-0 border-start-0 fw-bold shadow-none" 
-                            onClick={() => updateQty(id, size, qty + 1)}
+                            onClick={() => updateQty(id, size, qty + 1, maxStock)}
+                            disabled={qty >= maxStock || isOutOfStock}
                           >
                             +
                           </button>
@@ -164,10 +179,19 @@ export default function Cart() { // REMOVED the user prop
                           REMOVE
                         </button>
                       </div>
+                      
+                      {/* Contextual stock warnings */}
+                      {!isOutOfStock && maxStock < 5 && maxStock > 0 && (
+                        <p className="text-warning small fw-bold mt-2 mb-0">Only {maxStock} left in stock</p>
+                      )}
+                      {qty > maxStock && maxStock > 0 && (
+                        <p className="text-danger small fw-bold mt-2 mb-0">Please reduce quantity. Only {maxStock} available.</p>
+                      )}
+
                     </div>
                     
-                    <p className={`fw-bold ${!isSelected && 'text-muted'}`}>
-                      ₹{(item.price * qty).toLocaleString()}
+                    <p className={`fw-bold ${(!isSelected || isOutOfStock) && 'text-muted'}`}>
+                      ₹{isOutOfStock ? 0 : (item.price * qty).toLocaleString()}
                     </p>
                   </div>
                 </div>

@@ -1,85 +1,144 @@
-/* Typography */
+/* ==========================================================================
+   FASHION.CO - MASTER STYLESHEET
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+/* --------------------------------------------------------------------------
+   1. BASE & TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1a1a1a;
+  background-color: #ffffff;
   letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Letter Spacing */
-.ls-2 { letter-spacing: 2px; }
+/* Custom Text Utilities */
+.fw-black { font-weight: 900 !important; }
+.ls-1 { letter-spacing: 1px !important; }
+.ls-2 { letter-spacing: 2px !important; }
+.ls-3 { letter-spacing: 3px !important; }
+.extra-small { font-size: 0.75rem !important; }
 
-/* Product Card Hover Effect */
-.product-card-hover:hover .opacity-hover {
-  opacity: 1 !important;
-}
-
-.category-card img {
-  transition: transform 0.8s ease;
-}
-
-.category-card:hover img {
-  transform: scale(1.05);
-}
-
-.category-overlay {
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%);
-  transition: 0.3s;
-}
-
-/* Buttons */
-.btn-dark {
-  background-color: #000;
-  border: none;
-  font-size: 14px;
-}
-
-.btn-outline-light {
-  border-width: 2px;
-}
-
+/* Navbar */
 .navbar-brand {
   letter-spacing: 3px;
   text-transform: uppercase;
-}
-/* Custom Global Styles */
-body {
-  font-family: 'Inter', -apple-system, sans-serif;
-  color: #1a1a1a;
-  background-color: #ffffff;
+  font-weight: 900;
 }
 
-.ls-3 { letter-spacing: 3px; }
-.ls-2 { letter-spacing: 2px; }
-
-/* Category Interaction */
-.category-container img {
-  transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-
-.category-container:hover img {
-  transform: scale(1.05);
-}
-
-.category-overlay {
-  transition: transform 0.4s ease;
-  transform: translateY(100%);
-}
-
-.category-container:hover .category-overlay {
-  transform: translateY(0);
-}
-
-/* Minimal Buttons */
+/* --------------------------------------------------------------------------
+   2. MINIMALIST BUTTONS & FORMS
+   -------------------------------------------------------------------------- */
 .btn-dark {
-  border-radius: 0;
+  border-radius: 0 !important;
   padding: 12px 30px;
   background-color: #000;
+  color: #fff;
   border: none;
+  font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 .btn-light {
-  border-radius: 0;
+  border-radius: 0 !important;
   padding: 12px 30px;
   background-color: #fff;
   border: 1px solid #000;
   color: #000;
+  transition: all 0.3s ease;
 }
+
+.btn-outline-light {
+  border-radius: 0 !important;
+  border-width: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Premium Button Lift on Hover */
+.shadow-hover {
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.shadow-hover:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+/* Remove Bootstrap's Default Blue Glow on Click */
+.btn:focus, 
+.btn:active, 
+.form-control:focus {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: #1a1a1a !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. PRODUCT & CATEGORY INTERACTIONS
+   -------------------------------------------------------------------------- */
+.product-card-hover:hover .opacity-hover {
+  opacity: 1 !important;
+}
+
+/* Unified Category Image Zoom */
+.category-container, 
+.category-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.category-container img, 
+.category-card img {
+  transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.category-container:hover img, 
+.category-card:hover img {
+  transform: scale(1.05);
+}
+
+/* Combined Gradient & Slide-Up Animation for Overlays */
+.category-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.category-container:hover .category-overlay,
+.category-card:hover .category-overlay {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   4. UI UTILITIES & SCROLLBAR
+   -------------------------------------------------------------------------- */
+.cursor-pointer { cursor: pointer !important; }
+.transition-all { transition: all 0.3s ease !important; }
+
+/* Progress bars for reviews */
+.progress { background-color: #f0f0f0; }
+
+/* Page Load Fade-In */
+.animate-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #1a1a1a; }
+::-webkit-scrollbar-thumb:hover { background: #333333; }
